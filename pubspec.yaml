@@ -54,10 +54,17 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    # NOTE: .env is intentionally NOT listed here.
-    # Bundling .env as an asset embeds plaintext credentials in the APK/binary.
-    # The .env file is loaded from the filesystem by flutter_dotenv at runtime (debug/local only).
-    # For production builds, inject credentials via --dart-define at build time.
+    # .env is listed here so flutter_dotenv can load it via rootBundle (Flutter's only asset I/O).
+    # flutter_dotenv CANNOT read from the OS filesystem — it uses rootBundle.loadString() internally.
+    #
+    # SECURITY NOTE: The SUPABASE_ANON_KEY is a PUBLISHABLE key by design (Supabase calls it
+    # "publishable" because it is safe to ship in client apps). The real security boundary is
+    # Row Level Security (RLS) policies on the Supabase project, not key secrecy.
+    #
+    # For production release builds, prefer injecting credentials via:
+    #   flutter build apk --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+    # In that case, .env can be left empty or contain only placeholder values.
+    - .env
     - assets/
     - assets/data/
     - assets/data/History/

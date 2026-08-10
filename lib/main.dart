@@ -9,15 +9,15 @@ import 'providers/settings_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load .env from the filesystem (not bundled in assets for security).
-  // mergeWith allows environment variables set at build time via --dart-define
-  // to override .env values, so production builds can skip the file entirely.
+  // Load .env from the Flutter asset bundle (flutter_dotenv uses rootBundle internally).
+  // The .env file must be listed under assets: in pubspec.yaml for this to work.
+  // If credentials were injected via --dart-define at build time, dotenv is not needed
+  // and a missing/empty .env file is acceptable.
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
-    // .env may not exist in production builds — that's expected.
-    // Credentials must then be provided via --dart-define or another secure mechanism.
-    debugPrint('dotenv: .env file not found or could not be loaded: $e');
+    // .env may be empty or missing in production builds that use --dart-define.
+    debugPrint('dotenv: .env not loaded ($e). Falling back to --dart-define values.');
   }
 
   try {

@@ -183,7 +183,7 @@ mock_master_flutter/
 | ❌ DON'T | ✅ DO instead |
 |---|---|
 | Hardcode `SUPABASE_URL` or `SUPABASE_ANON_KEY` in any Dart file | Read from `dotenv.env['KEY']` and throw if missing |
-| Add `.env` back to the `assets:` list in `pubspec.yaml` | It intentionally is NOT there (SEC-2 security fix) |
+| `.env` NOT listed in pubspec.yaml `assets:` | **.env MUST be in assets** — flutter_dotenv uses `rootBundle` (not OS filesystem). For production builds, use `--dart-define` so the `.env` file is not needed at all. |
 | Create a second exam engine, result screen, or review screen | Reuse `ExamScreen`, `ResultScreen`, `ReviewScreen` |
 | Use `ref.read` inside a `Provider` builder | Use `ref.watch` to stay reactive |
 | Start the exam timer in `initState` directly | Start it in `addPostFrameCallback` via `_beginExam()` |

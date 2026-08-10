@@ -172,7 +172,7 @@ User Action
 | ID | Fix | File(s) |
 |---|---|---|
 | SEC-1 | Removed hardcoded `SUPABASE_URL`/`SUPABASE_ANON_KEY` fallbacks from Dart source. App now throws with a clear message if `.env` is missing. | `supabase_client.dart` |
-| SEC-2 | Removed `.env` from `pubspec.yaml` assets (was being bundled into APK). Added `.env.example`. `main.dart` now shows error widget if init fails. | `pubspec.yaml`, `main.dart` |
+| SEC-2 | **`flutter_dotenv` requires `.env` in assets** (`rootBundle` is its only I/O). Re-added `.env` to `pubspec.yaml`. Added `--dart-define` support in `supabase_client.dart` so production builds can inject credentials at compile time without bundling the file. The `SUPABASE_ANON_KEY` is a publishable key by design — real security is RLS on Supabase, not key secrecy. | `pubspec.yaml`, `supabase_client.dart`, `main.dart` |
 | SEC-3 | Fixed `ReportService` targeting wrong table (`reports` → `question_reports`). Wired `ReportService.submitReport()` into `ExamScreen` report dialog — was previously never called. | `report_service.dart`, `exam_screen.dart` |
 
 ### Architecture Fixes
