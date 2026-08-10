@@ -5,6 +5,7 @@ import '../../providers/subjects_provider.dart';
 import '../../services/chapter_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/session_provider.dart';
+import '../../providers/history_provider.dart';
 import '../../models/exam_session.dart';
 import '../../models/chapter_data.dart';
 import '../../models/subject.dart';
@@ -164,35 +165,59 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          icon: const Icon(Icons.menu_book_outlined, size: 16),
-                                          label: const Text('Revise'),
-                                          style: OutlinedButton.styleFrom(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                  Builder(builder: (context) {
+                                    // Count attempts for this specific chapter
+                                    final history = ref.watch(historyProvider);
+                                    final chapterAttempts = history
+                                        .where((h) =>
+                                            h.chapterId == chapter.id &&
+                                            h.subjectId == subject.id)
+                                        .length;
+                                    return Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton.icon(
+                                            icon: const Icon(
+                                              Icons.history_rounded,
+                                              size: 15,
+                                            ),
+                                            label: Text(
+                                              chapterAttempts > 0
+                                                  ? 'Attempts ($chapterAttempts)'
+                                                  : 'Review Attempts',
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            onPressed: () => context.push(
+                                              '/history/attempts',
+                                              extra: {
+                                                'subjectId': subject.id,
+                                                'chapterId': chapter.id,
+                                                'chapterTitle': chapter.title,
+                                                'subjectName': subject.name,
+                                              },
                                             ),
                                           ),
-                                          onPressed: () => _startExam(subject, chapter, isPractice: true),
                                         ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: FilledButton.icon(
-                                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                                          label: const Text('Start Exam'),
-                                          style: FilledButton.styleFrom(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: FilledButton.icon(
+                                            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                                            label: const Text('Start Exam'),
+                                            style: FilledButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
                                             ),
+                                            onPressed: () => _startExam(subject, chapter, isPractice: false),
                                           ),
-                                          onPressed: () => _startExam(subject, chapter, isPractice: false),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      ],
+                                    );
+                                  }),
                                 ],
                               ),
                             ),

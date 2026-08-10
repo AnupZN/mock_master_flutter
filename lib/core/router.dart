@@ -12,6 +12,9 @@ import '../screens/bookmarks/bookmarks_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/leaderboard/leaderboard_screen.dart';
 import '../screens/exam/test_generator_screen.dart';
+import '../screens/history/attempt_history_screen.dart';
+import '../screens/history/attempt_review_screen.dart';
+import '../models/attempt_history.dart';
 import '../app.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -80,6 +83,30 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final mode = state.uri.queryParameters['mode'];
           return TestGeneratorScreen(initialMode: mode);
+        },
+      ),
+      // ── Chapter attempt history ──────────────────────────────────────────
+      GoRoute(
+        path: '/history/attempts',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AttemptHistoryScreen(
+            subjectId: extra['subjectId'] as String,
+            chapterId: extra['chapterId'] as String,
+            chapterTitle: extra['chapterTitle'] as String,
+            subjectName: extra['subjectName'] as String,
+          );
+        },
+      ),
+      // ── Individual attempt review ────────────────────────────────────────
+      GoRoute(
+        path: '/history/review',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AttemptReviewScreen(
+            attempt: extra['attempt'] as AttemptHistoryItem,
+            attemptNumber: extra['attemptNumber'] as int,
+          );
         },
       ),
     ],
