@@ -238,60 +238,51 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Row 1
-                  Row(
+                  // GridView guarantees all 4 cells are pixel-identical in
+                  // width and height regardless of content length.
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.05,
                     children: [
-                      Expanded(
-                        child: _buildPracticeCard(
-                          context,
-                          title: 'Browse Subjects',
-                          subtitle: 'Study chapter by chapter',
-                          icon: Icons.explore_rounded,
-                          color: const Color(0xFF4F46E5),
-                          onTap: () => context.go('/subjects'),
-                          isDark: isDark,
-                        ),
+                      _buildPracticeCard(
+                        context,
+                        title: 'Browse Subjects',
+                        subtitle: 'Study chapter by chapter',
+                        icon: Icons.explore_rounded,
+                        color: const Color(0xFF4F46E5),
+                        onTap: () => context.go('/subjects'),
+                        isDark: isDark,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildPracticeCard(
-                          context,
-                          title: 'Custom Practice',
-                          subtitle: 'Mix topics your way',
-                          icon: Icons.auto_awesome_rounded,
-                          color: const Color(0xFF10B981),
-                          onTap: () => context.push('/generator?mode=custom'),
-                          isDark: isDark,
-                        ),
+                      _buildPracticeCard(
+                        context,
+                        title: 'Custom Practice',
+                        subtitle: 'Mix topics your way',
+                        icon: Icons.auto_awesome_rounded,
+                        color: const Color(0xFF10B981),
+                        onTap: () => context.push('/generator?mode=custom'),
+                        isDark: isDark,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Row 2
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildPracticeCard(
-                          context,
-                          title: 'Random Practice',
-                          subtitle: 'Surprise question set',
-                          icon: Icons.shuffle_rounded,
-                          color: const Color(0xFF7C3AED),
-                          onTap: () => context.push('/generator?mode=bookmark'),
-                          isDark: isDark,
-                        ),
+                      _buildPracticeCard(
+                        context,
+                        title: 'Random Practice',
+                        subtitle: 'Surprise question set',
+                        icon: Icons.shuffle_rounded,
+                        color: const Color(0xFF7C3AED),
+                        onTap: () => context.push('/generator?mode=bookmark'),
+                        isDark: isDark,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildPracticeCard(
-                          context,
-                          title: 'Weak Areas',
-                          subtitle: '${wrongQuestions.length} questions to revisit',
-                          icon: Icons.fitness_center_rounded,
-                          color: const Color(0xFFEF4444),
-                          onTap: () => context.go('/bookmarks'),
-                          isDark: isDark,
-                        ),
+                      _buildPracticeCard(
+                        context,
+                        title: 'Weak Areas',
+                        subtitle: '${wrongQuestions.length} questions to revisit',
+                        icon: Icons.fitness_center_rounded,
+                        color: const Color(0xFFEF4444),
+                        onTap: () => context.go('/bookmarks'),
+                        isDark: isDark,
                       ),
                     ],
                   ),
@@ -478,7 +469,10 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  // ── Practice mode card — vertical layout, no truncation risk ────────────
+  // ── Practice mode card ──────────────────────────────────────────────────
+  // The card fills its GridView cell completely (width + height are fixed by
+  // the grid's childAspectRatio). Icon is always top-left; title + subtitle
+  // sit directly below at the same Y position in every card.
   Widget _buildPracticeCard(
     BuildContext context, {
     required String title,
@@ -495,16 +489,22 @@ class DashboardScreen extends ConsumerWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          // No padding override — fills grid cell; padding applied inside.
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
             ),
           ),
+          padding: const EdgeInsets.all(16),
+          // Column with start alignment: icon pins to top, text follows.
+          // The grid cell height is fixed so there's no per-card size drift.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.max,
             children: [
+              // Icon badge — always at the top
               Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
@@ -514,23 +514,26 @@ class DashboardScreen extends ConsumerWidget {
                 child: Icon(icon, color: color, size: 22),
               ),
               const SizedBox(height: 12),
+              // Title — fixed position, always starts here
               Text(
                 title,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.2,
+                  height: 1.25,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
+              // Subtitle — fixed position, always starts here
               Text(
                 subtitle,
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                  height: 1.3,
+                  height: 1.35,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
