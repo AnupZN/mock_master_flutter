@@ -49,10 +49,12 @@ class AttemptHistoryScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     // Filter to this chapter only, newest first
-    final attempts = allHistory
+    final allAttempts = allHistory
         .where((h) => h.chapterId == chapterId && h.subjectId == subjectId)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
+    // Show only the 3 most recent attempts
+    final attempts = allAttempts.take(3).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -80,7 +82,7 @@ class AttemptHistoryScreen extends ConsumerWidget {
                 final attempt = attempts[index];
                 return _AttemptCard(
                   attempt: attempt,
-                  attemptNumber: attempts.length - index,
+                  attemptNumber: allAttempts.length - index,
                   isLatest: index == 0,
                   isDark: isDark,
                   onTap: () {
@@ -88,7 +90,7 @@ class AttemptHistoryScreen extends ConsumerWidget {
                       '/history/review',
                       extra: {
                         'attempt': attempt,
-                        'attemptNumber': attempts.length - index,
+                        'attemptNumber': allAttempts.length - index,
                       },
                     );
                   },
