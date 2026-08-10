@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/supabase_client.dart';
 import '../../models/exam_session.dart';
 import '../../providers/bookmarks_provider.dart';
@@ -95,110 +96,197 @@ class _TestGeneratorScreenState extends ConsumerState<TestGeneratorScreen> {
     _calculateAvailableQuestions();
   }
 
-  void _showTestPreviewModal(GeneratedTestResult testResult) {
+  Future<void> _showTestPreviewModal(GeneratedTestResult testResult) async {
     final theme = Theme.of(context);
     final subjectNamesText = testResult.selectedSubjectNames.join(', ');
 
-    showDialog(
+    // ── Content-based bilingual check ─────────────────────────────────────
+    final isBilingual = testResult.questions.any(
+      (q) => q.questionHi != null && q.questionHi!.isNotEmpty,
+    );
+
+    const prefKey = 'lastTestLanguage';
+    String selectedLang = kLangEn;
+    if (isBilingual) {
+      final prefs = await SharedPreferences.getInstance();
+      selectedLang = prefs.getString(prefKey) ?? kLangEn;
+    }
+
+    if (!mounted) return;
+
+    final resultLang = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                _isBookmarkMode ? Icons.bookmark_rounded : Icons.quiz_rounded,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(testResult.testType, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subjectNamesText, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Divider(),
-            const SizedBox(height: 12),
-            if (testResult.capWarningMessage != null) ...[
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
               Container(
-                padding: const EdgeInsets.all(10),
-                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.amber),
                 ),
-                child: Row(
+                child: Icon(
+                  _isBookmarkMode ? Icons.bookmark_added_rounded : Icons.auto_awesome_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline_rounded, size: 18, color: Colors.amber),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        testResult.capWarningMessage!,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber),
-                      ),
-                    ),
+                    Text(testResult.testType, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(subjectNamesText, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
             ],
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildModalStat(Icons.help_outline_rounded, '${testResult.actualQuestionCount}', 'Questions'),
-                _buildModalStat(Icons.timer_outlined, '${testResult.durationMinutes} Mins', 'Duration'),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Divider(),
+              const SizedBox(height: 12),
+              if (testResult.capWarningMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.amber),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 18, color: Colors.amber),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          testResult.capWarningMessage!,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildModalDetailRow('Requested Questions:', '${testResult.requestedQuestionCount}'),
-                  const SizedBox(height: 6),
-                  _buildModalDetailRow('Actual Questions:', '${testResult.actualQuestionCount}'),
-                  const SizedBox(height: 6),
-                  _buildModalDetailRow('Marking Scheme:', '+1.0 Correct / -0.33 Wrong'),
-                  const SizedBox(height: 6),
-                  _buildModalDetailRow('Languages Available:', 'English + हिन्दी'),
+                  _buildModalStat(Icons.help_outline_rounded, '${testResult.actualQuestionCount}', 'Questions'),
+                  _buildModalStat(Icons.timer_outlined, '${testResult.durationMinutes} Mins', 'Duration'),
                 ],
               ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildModalDetailRow('Requested Questions:', '${testResult.requestedQuestionCount}'),
+                    const SizedBox(height: 6),
+                    _buildModalDetailRow('Actual Questions:', '${testResult.actualQuestionCount}'),
+                    const SizedBox(height: 6),
+                    _buildModalDetailRow('Marking Scheme:', '+1.0 Correct / -0.33 Wrong'),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Content:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                        Text(
+                          isBilingual ? 'English + हिन्दी' : 'English only',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isBilingual ? Colors.indigo : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Language Selector ──────────────────────────────────────
+              const SizedBox(height: 16),
+              if (isBilingual) ...[
+                Row(
+                  children: [
+                    Icon(Icons.translate_rounded, size: 16, color: theme.colorScheme.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Test Language',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SegmentedButton<String>(
+                  style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
+                  segments: const [
+                    ButtonSegment(value: kLangEn, label: Text('English'), icon: Icon(Icons.language_rounded, size: 14)),
+                    ButtonSegment(value: kLangHi, label: Text('हिन्दी'), icon: Icon(Icons.translate_rounded, size: 14)),
+                    ButtonSegment(value: kLangBoth, label: Text('Both'), icon: Icon(Icons.swap_horiz_rounded, size: 14)),
+                  ],
+                  selected: {selectedLang},
+                  onSelectionChanged: (newSet) {
+                    setModalState(() => selectedLang = newSet.first);
+                  },
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  selectedLang == kLangBoth
+                      ? 'Toggle EN/HI during the test'
+                      : selectedLang == kLangHi
+                          ? 'All questions shown in हिन्दी'
+                          : 'All questions shown in English',
+                  style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Text(
+                        'English only — no Hindi content available',
+                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Cancel')),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+              label: const Text('Start Test', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () => Navigator.pop(ctx, selectedLang),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-            label: const Text('Start Test', style: TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _launchExamSession(testResult);
-            },
-          ),
-        ],
       ),
     );
+
+    if (resultLang == null || !mounted) return;
+
+    if (isBilingual) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(prefKey, resultLang);
+    }
+
+    if (!mounted) return;
+    _launchExamSession(testResult, resultLang);
   }
 
   Widget _buildModalStat(IconData icon, String value, String label) {
@@ -269,11 +357,11 @@ class _TestGeneratorScreenState extends ConsumerState<TestGeneratorScreen> {
     }
 
     if (mounted) {
-      _showTestPreviewModal(result);
+      await _showTestPreviewModal(result);
     }
   }
 
-  void _launchExamSession(GeneratedTestResult result) {
+  void _launchExamSession(GeneratedTestResult result, String testLanguage) {
     final session = ExamSession(
       subjectId: 'generated_test',
       chapterId: result.testType.toLowerCase().replaceAll(' ', '_'),
@@ -289,6 +377,7 @@ class _TestGeneratorScreenState extends ConsumerState<TestGeneratorScreen> {
       practiceType: result.testType,
       positiveMarks: 1.0,
       negativeMarks: 0.33,
+      testLanguage: testLanguage,
     );
 
     ref.read(sessionProvider.notifier).startSession(session);

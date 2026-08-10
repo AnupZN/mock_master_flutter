@@ -1,5 +1,13 @@
 import 'question.dart';
 
+/// Language that the user selected for this exam session.
+/// 'en'   = English only
+/// 'hi'   = Hindi only (हिन्दी)
+/// 'both' = bilingual — the in-exam EN/HI toggle remains available
+const String kLangEn = 'en';
+const String kLangHi = 'hi';
+const String kLangBoth = 'both';
+
 class ExamSession {
   final String subjectId;
   final String chapterId;
@@ -15,6 +23,8 @@ class ExamSession {
   final String? practiceType;
   final double positiveMarks;
   final double negativeMarks;
+  /// Language code chosen before starting. See kLangEn / kLangHi / kLangBoth.
+  final String testLanguage;
 
   ExamSession({
     required this.subjectId,
@@ -31,6 +41,7 @@ class ExamSession {
     this.practiceType,
     required this.positiveMarks,
     required this.negativeMarks,
+    this.testLanguage = kLangEn,
   });
 
   factory ExamSession.fromJson(Map<String, dynamic> json) {
@@ -75,6 +86,7 @@ class ExamSession {
       practiceType: json['practiceType'],
       positiveMarks: (json['positiveMarks'] ?? 1.0).toDouble(),
       negativeMarks: (json['negativeMarks'] ?? 0.0).toDouble(),
+      testLanguage: json['testLanguage'] ?? kLangEn,
     );
   }
 
@@ -94,6 +106,7 @@ class ExamSession {
       'practiceType': practiceType,
       'positiveMarks': positiveMarks,
       'negativeMarks': negativeMarks,
+      'testLanguage': testLanguage,
     };
   }
 
@@ -112,6 +125,7 @@ class ExamSession {
     String? practiceType,
     double? positiveMarks,
     double? negativeMarks,
+    String? testLanguage,
   }) {
     return ExamSession(
       subjectId: subjectId ?? this.subjectId,
@@ -128,6 +142,7 @@ class ExamSession {
       practiceType: practiceType ?? this.practiceType,
       positiveMarks: positiveMarks ?? this.positiveMarks,
       negativeMarks: negativeMarks ?? this.negativeMarks,
+      testLanguage: testLanguage ?? this.testLanguage,
     );
   }
 }

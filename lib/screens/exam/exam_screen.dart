@@ -33,8 +33,19 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final session = ref.read(sessionProvider);
-      if (session != null && session.questions.isNotEmpty) {
-        ref.read(sessionProvider.notifier).markVisited(session.questions[0].id);
+      if (session != null) {
+        if (session.testLanguage == kLangHi) {
+          setState(() {
+            _isHindi = true;
+          });
+        } else {
+          setState(() {
+            _isHindi = false;
+          });
+        }
+        if (session.questions.isNotEmpty) {
+          ref.read(sessionProvider.notifier).markVisited(session.questions[0].id);
+        }
       }
       // Start timer here — after the first frame has fully rendered.
       _beginExam();
@@ -376,23 +387,38 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
           ),
           actions: [
             // Bilingual Language Switcher Chip
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => setState(() => _isHindi = !_isHindi),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  _isHindi ? 'हिन्दी' : 'English',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+            if (session.testLanguage == kLangBoth) ...[
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => setState(() => _isHindi = !_isHindi),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    _isHindi ? 'हिन्दी' : 'English',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
+              const SizedBox(width: 6),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  session.testLanguage == kLangHi ? 'हिन्दी' : 'English',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
 
             // Countdown Timer Chip
             Container(

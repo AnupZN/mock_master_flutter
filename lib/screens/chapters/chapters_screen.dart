@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/subjects_provider.dart';
 import '../../services/chapter_service.dart';
 import '../../providers/auth_provider.dart';
@@ -250,110 +251,270 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
     }
   }
 
-  Future<void> _showExamOverviewModal(Subject subject, Chapter chapter, ChapterData data, bool isPractice) async {
+  Future<void> _showExamOverviewModal(
+    Subject subject,
+    Chapter chapter,
+    ChapterData data,
+    bool isPractice,
+  ) async {
     final totalTimeMins = ((data.questions.length * data.timePerQuestion) / 60).round();
     final theme = Theme.of(context);
 
-    final start = await showDialog<bool>(
+    // ── Bilingual detection — content-based, not name-based ──────────────
+    // A chapter is bilingual only if at least one question actually has
+    // Hindi text populated. This correctly handles future subjects too.
+    final isBilingual = data.questions.any(
+      (q) => q.questionHi != null && q.questionHi!.isNotEmpty,
+    );
+
+    // ── Load last-used language for bilingual subjects ────────────────────
+    const prefKey = 'lastTestLanguage';
+    String selectedLang = kLangEn;
+    if (isBilingual) {
+      final prefs = await SharedPreferences.getInstance();
+      selectedLang = prefs.getString(prefKey) ?? kLangEn;
+    }
+
+    if (!mounted) return;
+
+    // ── Show dialog with StatefulBuilder so the picker re-renders ─────────
+    final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(isPractice ? Icons.menu_book_rounded : Icons.timer_rounded, color: theme.colorScheme.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(chapter.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subject.name, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Divider(),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
               children: [
-                _buildOverviewStat(Icons.quiz_outlined, '${data.questions.length}', 'Questions'),
-                _buildOverviewStat(Icons.hourglass_bottom_rounded, isPractice ? 'Untimed' : '$totalTimeMins Mins', 'Duration'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isPractice ? Icons.menu_book_rounded : Icons.timer_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Marking Scheme:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                       Text(
-                        '+${data.positiveMarks} / -${data.negativeMarks}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                        chapter.title,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        subject.name,
+                        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(),
+                const SizedBox(height: 12),
+
+                // ── Question count + duration row ────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildOverviewStat(
+                      Icons.quiz_outlined,
+                      '${data.questions.length}',
+                      'Questions',
+                    ),
+                    _buildOverviewStat(
+                      Icons.hourglass_bottom_rounded,
+                      isPractice ? 'Untimed' : '$totalTimeMins Mins',
+                      'Duration',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // ── Marking scheme + language info ───────────────────────
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
                     children: [
-                      Text('Languages:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                      Text('English + हिन्दी', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Marking Scheme:',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                          Text(
+                            '+${data.positiveMarks} / -${data.negativeMarks}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Content:',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                          Text(
+                            isBilingual ? 'English + हिन्दी' : 'English only',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isBilingual ? Colors.indigo : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
+                ),
+
+                // ── Language selector ────────────────────────────────────
+                const SizedBox(height: 16),
+                if (!isBilingual) ...[]
+                else ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.translate_rounded,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Test Language',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SegmentedButton<String>(
+                    style: SegmentedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    segments: const [
+                      ButtonSegment(
+                        value: kLangEn,
+                        label: Text('English'),
+                        icon: Icon(Icons.language_rounded, size: 14),
+                      ),
+                      ButtonSegment(
+                        value: kLangHi,
+                        label: Text('हिन्दी'),
+                        icon: Icon(Icons.translate_rounded, size: 14),
+                      ),
+                      ButtonSegment(
+                        value: kLangBoth,
+                        label: Text('Both'),
+                        icon: Icon(Icons.swap_horiz_rounded, size: 14),
+                      ),
+                    ],
+                    selected: {selectedLang},
+                    onSelectionChanged: (newSet) {
+                      setDialogState(() => selectedLang = newSet.first);
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    selectedLang == kLangBoth
+                        ? 'Toggle EN/HI during the test'
+                        : selectedLang == kLangHi
+                            ? 'All questions shown in हिन्दी'
+                            : 'All questions shown in English',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
-              ),
+
+                // ── English-only notice (non-bilingual subjects) ──────────
+                if (!isBilingual) ...[]
+                else const SizedBox.shrink(),
+
+                if (!isBilingual)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded,
+                            size: 14,
+                            color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Text(
+                          'English only — no Hindi content available',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton.icon(
-            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-            label: Text(isPractice ? 'Start Revision' : 'Start Test'),
-            onPressed: () => Navigator.pop(ctx, true),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: Text(isPractice ? 'Start Practice' : 'Start Test'),
+                onPressed: () => Navigator.pop(ctx, selectedLang),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    if ((start ?? false) && mounted) {
-      final session = ExamSession(
-        subjectId: subject.id,
-        chapterId: chapter.id,
-        subjectName: subject.name,
-        chapterTitle: chapter.title,
-        questions: data.questions,
-        userAnswers: {},
-        markedForReview: {},
-        visitedQuestions: {},
-        timeRemaining: data.questions.length * data.timePerQuestion,
-        totalTime: data.questions.length * data.timePerQuestion,
-        isPracticeMode: isPractice,
-        positiveMarks: data.positiveMarks,
-        negativeMarks: data.negativeMarks,
-      );
-      ref.read(sessionProvider.notifier).startSession(session);
-      context.go('/exam');
+    if (result == null || !mounted) return;
+
+    // Persist the language choice for next time (only for bilingual subjects)
+    if (isBilingual) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('lastTestLanguage', result);
     }
+
+    final session = ExamSession(
+      subjectId: subject.id,
+      chapterId: chapter.id,
+      subjectName: subject.name,
+      chapterTitle: chapter.title,
+      questions: data.questions,
+      userAnswers: {},
+      markedForReview: {},
+      visitedQuestions: {},
+      timeRemaining: data.questions.length * data.timePerQuestion,
+      totalTime: data.questions.length * data.timePerQuestion,
+      isPracticeMode: isPractice,
+      positiveMarks: data.positiveMarks,
+      negativeMarks: data.negativeMarks,
+      testLanguage: result,
+    );
+    ref.read(sessionProvider.notifier).startSession(session);
+    if (!mounted) return;
+    context.go('/exam');
   }
 
   Widget _buildOverviewStat(IconData icon, String value, String label) {
