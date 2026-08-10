@@ -243,5 +243,18 @@ APK Output: build/app/outputs/flutter-apk/app-release.apk
 
 | Hash | Commit Description |
 |---|---|
-| `1e80b0f` | chore: initial web app commit + Flutter development roadmap |
-| (latest) | feat: recreate Mock Master as native Flutter Android application |
+| `b562d53` | feat(init): initialize Mock Master Flutter application standalone repository |
+| `2a1eedd` | docs: add instruction.md cross-account handover and project context guide |
+
+---
+
+## 11. Agent Git Commit & Handover Protocol
+
+All coding agents working on this codebase MUST follow these standards:
+1. **Incremental Milestone Commits**: After completing any major feature, bug fix, or UI change, the agent MUST run `flutter analyze` to ensure **0 errors and 0 warnings**, then make a descriptive Git commit using Conventional Commits format (`feat(...)`, `fix(...)`, `style(...)`, `docs(...)`).
+2. **Roadmap Logging**: The agent MUST update `roadmap.md` logging:
+   - What was implemented.
+   - What was tested and verified.
+   - Known limitations or open questions.
+   - Recommended next steps for the next agent.
+3. **Cross-Account Continuity**: When switching accounts, any new agent will read `instruction.md`, inspect `roadmap.md`, and run `git log` / `git status` to trace the project history with 100% confidence.

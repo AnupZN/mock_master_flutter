@@ -145,6 +145,15 @@ When continuing development, follow these rules:
 5. **Static Analysis Standard**:
    - Code changes MUST pass `flutter analyze` with **0 errors and 0 warnings**.
 
+6. **Mandatory Git Commit & Roadmap Logging Protocol**:
+   - **Commit Frequency**: After completing any major feature, bug fix, or UI milestone, the agent MUST verify the build with `flutter analyze` and create a descriptive Git commit following Conventional Commits format (`feat(...)`, `fix(...)`, `style(...)`, `docs(...)`).
+   - **Roadmap Synchronization**: After committing, the agent MUST update `roadmap.md` logging:
+     - What was implemented.
+     - What was tested and verified.
+     - Known limitations (if any).
+     - Recommended next steps for the next agent.
+   - **Traceability**: This allows any new agent or model to run `git log --oneline -n 10` and inspect `roadmap.md` to trace the project history with 100% confidence.
+
 ---
 
 ## 6. How to Run, Test, & Preview
