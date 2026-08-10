@@ -32,14 +32,6 @@ class DashboardScreen extends ConsumerWidget {
       accuracy = history.map((e) => e.accuracy).fold<double>(0.0, (a, b) => a + b) / history.length;
     }
 
-    // Calculate today's answered questions count from history
-    final todayIso = DateTime.now().toIso8601String().substring(0, 10);
-    int todayAnsweredCount = 0;
-    for (var h in history) {
-      if (h.date.startsWith(todayIso)) {
-        todayAnsweredCount += h.totalQuestions;
-      }
-    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -206,56 +198,6 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 20),
                   ],
 
-                  // Today's Goal Section
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: theme.colorScheme.outlineVariant),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.track_changes_rounded, color: Color(0xFF10B981), size: 20),
-                                  const SizedBox(width: 8),
-                                  Text("Today's Goal", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                              Text(
-                                '$todayAnsweredCount / ${settings.dailyTarget} Questions',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF10B981)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: LinearProgressIndicator(
-                              value: (settings.dailyTarget > 0) ? (todayAnsweredCount / settings.dailyTarget).clamp(0.0, 1.0) : 0.0,
-                              minHeight: 8,
-                              backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                              color: const Color(0xFF10B981),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            todayAnsweredCount >= settings.dailyTarget
-                                ? '🎉 Daily goal achieved! Keep going!'
-                                : '${settings.dailyTarget - todayAnsweredCount} questions remaining today',
-                            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   // Practice Modes Section
                   Text(
                     'Practice Modes',
