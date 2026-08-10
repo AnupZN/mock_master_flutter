@@ -37,7 +37,12 @@ class ExamSession {
     Map<int, int?> parsedAnswers = {};
     if (json['userAnswers'] != null) {
       (json['userAnswers'] as Map<String, dynamic>).forEach((key, value) {
-        parsedAnswers[int.parse(key)] = value as int?;
+        // Safe cast: JSON numbers may deserialize as int or double.
+        parsedAnswers[int.parse(key)] = value == null
+            ? null
+            : value is int
+                ? value
+                : (value as num).toInt();
       });
     }
 

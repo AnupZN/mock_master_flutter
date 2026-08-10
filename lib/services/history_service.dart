@@ -63,7 +63,7 @@ class HistoryService {
         'is_practice_mode': item.isPracticeMode,
       });
     } catch (e) {
-      // print(e);
+      debugPrint('HistoryService.saveHistoryItem error: $e');
     }
   }
 

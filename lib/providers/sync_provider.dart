@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
 import 'settings_provider.dart';
@@ -28,7 +29,7 @@ class SyncService {
         _ref.read(wrongQuestionsProvider.notifier).syncFromSupabase(userId),
       ]);
     } catch (e) {
-      // Handle sync error
+      debugPrint('SyncService.syncAllData error: $e');
     }
   }
 }

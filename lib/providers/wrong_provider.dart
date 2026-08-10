@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/bookmark.dart';
+import '../models/wrong_question.dart';
 import '../services/wrong_service.dart';
 import 'auth_provider.dart';
 
 final wrongServiceProvider = Provider((ref) => WrongService(ref.read(supabaseProvider)));
 
-final wrongQuestionsProvider = StateNotifierProvider<WrongQuestionsNotifier, List<Bookmark>>((ref) {
+final wrongQuestionsProvider = StateNotifierProvider<WrongQuestionsNotifier, List<WrongQuestion>>((ref) {
   return WrongQuestionsNotifier(ref.read(wrongServiceProvider), ref);
 });
 
-class WrongQuestionsNotifier extends StateNotifier<List<Bookmark>> {
+class WrongQuestionsNotifier extends StateNotifier<List<WrongQuestion>> {
   final WrongService _service;
   final Ref _ref;
 
@@ -23,9 +23,16 @@ class WrongQuestionsNotifier extends StateNotifier<List<Bookmark>> {
     final user = _ref.read(currentUserProvider);
     if (user == null) return;
 
-    final exists = state.any((b) => b.subjectId == subjectId && b.chapterId == chapterId && b.questionId == questionId);
+    final qId = questionId.toString();
+    final exists = state.any((w) =>
+        w.subjectId == subjectId && w.chapterId == chapterId && w.questionId == qId);
     if (!exists) {
-      final item = Bookmark(subjectId: subjectId, chapterId: chapterId, questionId: questionId);
+      final item = WrongQuestion(
+        subjectId: subjectId,
+        chapterId: chapterId,
+        questionId: qId,
+        addedAt: DateTime.now(),
+      );
       state = [...state, item];
       await _service.addWrongQuestion(user.id, item);
     }
@@ -35,8 +42,12 @@ class WrongQuestionsNotifier extends StateNotifier<List<Bookmark>> {
     final user = _ref.read(currentUserProvider);
     if (user == null) return;
 
-    final item = Bookmark(subjectId: subjectId, chapterId: chapterId, questionId: questionId);
-    state = state.where((b) => !(b.subjectId == subjectId && b.chapterId == chapterId && b.questionId == questionId)).toList();
+    final qId = questionId.toString();
+    final item = WrongQuestion(subjectId: subjectId, chapterId: chapterId, questionId: qId);
+    state = state
+        .where((w) => !(w.subjectId == subjectId && w.chapterId == chapterId && w.questionId == qId))
+        .toList();
     await _service.removeWrongQuestion(user.id, item);
   }
 }
+

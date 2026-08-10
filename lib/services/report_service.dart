@@ -6,9 +6,16 @@ class ReportService {
 
   ReportService(this._supabase);
 
-  Future<void> submitReport(String userId, String subjectId, String chapterId, int questionId, String reason, String details) async {
+  Future<void> submitReport(
+    String userId,
+    String subjectId,
+    String chapterId,
+    int questionId,
+    String reason,
+    String details,
+  ) async {
     try {
-      await _supabase.from('reports').insert({
+      await _supabase.from('question_reports').insert({
         'user_id': userId,
         'subject_id': subjectId,
         'chapter_id': chapterId,
@@ -16,9 +23,12 @@ class ReportService {
         'reason': reason,
         'details': details,
         'status': 'pending',
+        'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      debugPrint('ReportService error: $e');
+      debugPrint('ReportService error submitting report: $e');
+      rethrow;
     }
   }
 }
+

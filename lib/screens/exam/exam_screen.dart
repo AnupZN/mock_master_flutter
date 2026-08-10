@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/history_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/attempt_history.dart';
 import '../../models/exam_session.dart';
+import '../../services/report_service.dart';
 import '../../widgets/markdown_text.dart';
 import '../../widgets/option_tile.dart';
 import 'question_palette.dart';
@@ -21,18 +23,28 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
   int _currentIndex = 0;
   Timer? _timer;
   bool _isHindi = false;
+  // ARCH-2: _examStarted ensures the timer only fires after the UI is fully
+  // ready — it must not auto-start during any loading delay or transition.
+  bool _examStarted = false;
   final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final session = ref.read(sessionProvider);
       if (session != null && session.questions.isNotEmpty) {
         ref.read(sessionProvider.notifier).markVisited(session.questions[0].id);
       }
+      // Start timer here — after the first frame has fully rendered.
+      _beginExam();
     });
+  }
+
+  void _beginExam() {
+    if (_examStarted) return;
+    _examStarted = true;
+    _startTimer();
   }
 
   void _startTimer() {
@@ -264,6 +276,22 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
+                // SEC-3: Actually submit the report via ReportService.
+                final session = ref.read(sessionProvider);
+                final user = ref.read(currentUserProvider);
+                if (user != null && session != null) {
+                  final reportService = ReportService(ref.read(supabaseProvider));
+                  reportService.submitReport(
+                    user.id,
+                    session.subjectId,
+                    session.chapterId,
+                    question.id as int,
+                    selectedReason,
+                    detailsController.text.trim(),
+                  ).catchError((e) {
+                    debugPrint('Report submit failed: $e');
+                  });
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Thank you! Question report submitted.')),
                 );

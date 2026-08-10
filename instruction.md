@@ -41,8 +41,7 @@ mock_master_flutter/
 ├── analysis_options.yaml      # Static analysis lints
 ├── instruction.md             # This cross-account handover guide
 ├── roadmap.md                 # Authoritative project roadmap & milestone status
-├── uiux.md                    # UI/UX design tokens & sitemap reference
-├── UI-UX Improvement.md       # Specific UI/UX directives & guidelines
+├── .env.example               # Safe credentials template (copy to .env and fill in values)
 ├── sql/                       # Supabase SQL Database Schemas
 │   ├── SUPABASE_SCHEMA.sql
 │   └── SUPABASE_SCHEMA_ADDITIONS.sql

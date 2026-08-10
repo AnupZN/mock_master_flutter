@@ -214,10 +214,10 @@ mock_master_flutter/
 
 Credentials stored safely in `/home/reed/Coding/Mock-Master-V0/mock_master_flutter/.env`:
 ```env
-SUPABASE_URL=https://ttbtburllrmcdnorbqrl.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_QqW37wq4Q5vTgwCRdpyolg_2eEgG_Aj
+SUPABASE_URL=<YOUR_SUPABASE_PROJECT_URL>
+SUPABASE_ANON_KEY=<YOUR_SUPABASE_PUBLISHABLE_ANON_KEY>
 ```
-*(Added to `.gitignore` to prevent credential leaks)*
+*(Added to `.gitignore` to prevent credential leaks. Copy `.env.example` to `.env` and fill in your project values.)*
 
 ---
 
@@ -243,8 +243,10 @@ APK Output: build/app/outputs/flutter-apk/app-release.apk
 
 | Hash | Commit Description |
 |---|---|
-| `b562d53` | feat(init): initialize Mock Master Flutter application standalone repository |
+| `c9cb05d` | docs: define mandatory Git commit & roadmap logging protocol for cross-account continuity |
+| `baeca46` | docs: update roadmap.md with Phase 13 completion summary |
 | `2a1eedd` | docs: add instruction.md cross-account handover and project context guide |
+| `b562d53` | feat(init): initialize Mock Master Flutter application standalone repository |
 
 ---
 

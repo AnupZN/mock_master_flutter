@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_settings.dart';
@@ -42,7 +43,7 @@ class SettingsService {
         );
       }
     } catch (e) {
-      // ignore
+      debugPrint('SettingsService.fetchFromSupabase error: $e');
     }
     return null;
   }
@@ -57,7 +58,7 @@ class SettingsService {
         'user_title': settings.userTitle,
       }).eq('id', userId);
     } catch (e) {
-      // ignore
+      debugPrint('SettingsService.saveToSupabase error: $e');
     }
   }
 }

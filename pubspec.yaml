@@ -54,7 +54,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - .env
+    # NOTE: .env is intentionally NOT listed here.
+    # Bundling .env as an asset embeds plaintext credentials in the APK/binary.
+    # The .env file is loaded from the filesystem by flutter_dotenv at runtime (debug/local only).
+    # For production builds, inject credentials via --dart-define at build time.
     - assets/
     - assets/data/
     - assets/data/History/

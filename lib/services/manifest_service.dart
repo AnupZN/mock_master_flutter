@@ -14,31 +14,46 @@ class ManifestService {
   Future<List<Subject>> loadManifest() async {
     List<Subject> localFallback = [];
 
-    // 1. Always load bundled local asset manifest as base/fallback
+    // Step 1: Always load the bundled asset manifest as a base/fallback.
     try {
       final jsonString = await rootBundle.loadString('assets/data/manifest.json');
       final decoded = jsonDecode(jsonString);
       localFallback = _parseManifestData(decoded);
     } catch (e) {
-      debugPrint('Error loading local asset manifest fallback: $e');
+      debugPrint('ManifestService: error loading bundled asset manifest: $e');
     }
 
-    // 2. Check SharedPreferences cache
+    // Step 2: Check SharedPreferences cache for immediate display.
+    List<Subject>? cachedSubjects;
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedData = prefs.getString(_cacheKey);
       if (cachedData != null) {
         final decoded = jsonDecode(cachedData);
-        final cachedSubjects = _parseManifestData(decoded);
-        if (cachedSubjects.isNotEmpty) {
-          return _mergeSubjects(cachedSubjects, localFallback);
+        final parsed = _parseManifestData(decoded);
+        if (parsed.isNotEmpty) {
+          cachedSubjects = parsed;
         }
       }
     } catch (e) {
-      debugPrint('Error reading manifest cache: $e');
+      debugPrint('ManifestService: error reading manifest cache: $e');
     }
 
-    // 3. Try Supabase admin_manifest
+    // Step 3: Fetch from Supabase in the background (stale-while-revalidate).
+    // We do NOT short-circuit on cache — always keep the remote copy fresh.
+    _refreshFromSupabase(localFallback);
+
+    // Return best available data immediately:
+    // cached (if available) → local fallback.
+    if (cachedSubjects != null) {
+      return _mergeSubjects(cachedSubjects, localFallback);
+    }
+    return localFallback;
+  }
+
+  /// Fetches fresh data from Supabase and writes it to cache.
+  /// Called in the background — callers do not await this.
+  Future<void> _refreshFromSupabase(List<Subject> localFallback) async {
     try {
       final response = await _supabase
           .from('admin_manifest')
@@ -49,16 +64,11 @@ class ManifestService {
       if (response != null && response['data'] != null) {
         final dbData = response['data'];
         await cacheManifest(dbData);
-        final dbSubjects = _parseManifestData(dbData);
-        if (dbSubjects.isNotEmpty) {
-          return _mergeSubjects(dbSubjects, localFallback);
-        }
+        debugPrint('ManifestService: remote manifest refreshed and cached.');
       }
     } catch (e) {
-      debugPrint('Error fetching admin_manifest from Supabase: $e');
+      debugPrint('ManifestService: error fetching admin_manifest from Supabase: $e');
     }
-
-    return localFallback;
   }
 
   Future<void> cacheManifest(dynamic data) async {
@@ -75,6 +85,7 @@ class ManifestService {
     return [];
   }
 
+  /// Remote subjects override local bundled ones (by id); local provides extras.
   List<Subject> _mergeSubjects(List<Subject> remote, List<Subject> local) {
     final Map<String, Subject> map = {};
     for (var s in local) {
@@ -86,3 +97,4 @@ class ManifestService {
     return map.values.toList();
   }
 }
+
