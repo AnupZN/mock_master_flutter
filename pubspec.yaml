@@ -1,0 +1,62 @@
+name: mock_master
+description: "Mock Master - AI-powered exam preparation app for competitive exams"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Supabase Backend
+  supabase_flutter: ^2.8.4
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.6.3
+
+  # Markdown rendering (for questions/explanations)
+  flutter_markdown: ^0.7.7
+
+  # Local persistence
+  shared_preferences: ^2.3.3
+
+  # Secure token storage
+  flutter_secure_storage: ^9.2.4
+
+  # Environment variables
+  flutter_dotenv: ^5.2.1
+
+  # Date/time formatting
+  intl: ^0.19.0
+
+  # UI utilities
+  shimmer: ^3.0.0
+  google_fonts: ^6.2.1
+
+  # Icons (Material 3 cupertino supplement)
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.4.3
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.3.13
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/
+    - assets/data/
+    - assets/data/History/
+    - assets/data/Polity/
+    - assets/data/Geography/
