@@ -424,7 +424,7 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                       ),
                       ButtonSegment(
                         value: kLangBoth,
-                        label: Text('Both'),
+                        label: Text('English + हिन्दी'),
                         icon: Icon(Icons.swap_horiz_rounded, size: 14),
                       ),
                     ],
@@ -433,10 +433,10 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                       setDialogState(() => selectedLang = newSet.first);
                     },
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     selectedLang == kLangBoth
-                        ? 'Toggle EN/HI during the test'
+                        ? 'Displays English & हिन्दी together for all questions'
                         : selectedLang == kLangHi
                             ? 'All questions shown in हिन्दी'
                             : 'All questions shown in English',

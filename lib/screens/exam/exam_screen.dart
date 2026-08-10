@@ -386,39 +386,22 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
             ],
           ),
           actions: [
-            // Bilingual Language Switcher Chip
-            if (session.testLanguage == kLangBoth) ...[
-              InkWell(
+            // Language Indicator Chip
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => setState(() => _isHindi = !_isHindi),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(
-                    _isHindi ? 'हिन्दी' : 'English',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                  ),
-                ),
+                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
               ),
-              const SizedBox(width: 6),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  session.testLanguage == kLangHi ? 'हिन्दी' : 'English',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurfaceVariant),
-                ),
+              child: Text(
+                session.testLanguage == kLangBoth
+                    ? 'English + हिन्दी'
+                    : (session.testLanguage == kLangHi ? 'हिन्दी' : 'English'),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
               ),
-              const SizedBox(width: 6),
-            ],
+            ),
+            const SizedBox(width: 6),
 
             // Countdown Timer Chip
             Container(
@@ -557,8 +540,21 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
                 itemCount: session.questions.length,
                 itemBuilder: (context, index) {
                   final q = session.questions[index];
-                  final questionText = _isHindi && q.questionHi != null ? q.questionHi! : q.question;
-                  final options = _isHindi && q.optionsHi != null ? q.optionsHi! : q.options;
+                  String questionText;
+                  List<String> options;
+
+                  if (session.testLanguage == kLangBoth) {
+                    final hasHiQuestion = q.questionHi != null && q.questionHi!.isNotEmpty;
+                    questionText = hasHiQuestion ? '${q.question}\n\n---\n\n${q.questionHi!}' : q.question;
+                    options = List.generate(q.options.length, (optIdx) {
+                      final hasHiOpt = q.optionsHi != null && optIdx < q.optionsHi!.length && q.optionsHi![optIdx].isNotEmpty;
+                      return hasHiOpt ? '${q.options[optIdx]}\n${q.optionsHi![optIdx]}' : q.options[optIdx];
+                    });
+                  } else {
+                    questionText = _isHindi && q.questionHi != null && q.questionHi!.isNotEmpty ? q.questionHi! : q.question;
+                    options = _isHindi && q.optionsHi != null ? q.optionsHi! : q.options;
+                  }
+
                   final currentAnswer = session.userAnswers[q.id];
 
                   return SingleChildScrollView(

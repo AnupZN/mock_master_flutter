@@ -232,17 +232,17 @@ class _TestGeneratorScreenState extends ConsumerState<TestGeneratorScreen> {
                   segments: const [
                     ButtonSegment(value: kLangEn, label: Text('English'), icon: Icon(Icons.language_rounded, size: 14)),
                     ButtonSegment(value: kLangHi, label: Text('हिन्दी'), icon: Icon(Icons.translate_rounded, size: 14)),
-                    ButtonSegment(value: kLangBoth, label: Text('Both'), icon: Icon(Icons.swap_horiz_rounded, size: 14)),
+                    ButtonSegment(value: kLangBoth, label: Text('English + हिन्दी'), icon: Icon(Icons.swap_horiz_rounded, size: 14)),
                   ],
                   selected: {selectedLang},
                   onSelectionChanged: (newSet) {
                     setModalState(() => selectedLang = newSet.first);
                   },
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   selectedLang == kLangBoth
-                      ? 'Toggle EN/HI during the test'
+                      ? 'Displays English & हिन्दी together for all questions'
                       : selectedLang == kLangHi
                           ? 'All questions shown in हिन्दी'
                           : 'All questions shown in English',
