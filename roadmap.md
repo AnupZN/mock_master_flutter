@@ -183,44 +183,30 @@ mock_master_flutter/
 | **Phase 10** | Android toolchain setup, static analysis & APK Build | ✅ Complete |
 | **Phase 11** | Comprehensive UI/UX Polish (`UI-UX Improvement.md` implementation) | ✅ Complete |
 | **Phase 12** | Flexible Test-Generation System (Bookmarked & Custom/Mixed Tests) | ✅ Complete |
+| **Phase 13** | Exam/Review UI Hierarchy, Single-Question Review & Repository Cleanup | ✅ Complete |
 
 ---
 
-## 7. Phase 12: Flexible Test-Generation System Implementation Summary
+## 7. Phase 13: Exam/Review UI Redesign & Repository Transfer Summary
 
 ### What Was Implemented:
-1. **`TestGeneratorService` (`lib/services/test_generator_service.dart`)**:
-   - Reusable question-generation logic separated from UI code.
-   - **Bookmarked Test Engine**: Filters user's bookmarked questions from `bookmarksProvider` against chosen subject(s) or All Subjects.
-   - **Custom / Mixed Test Engine**: Samples questions across selected subjects without duplicates.
-   - **Automatic Capping Logic**: If available questions < requested (e.g. 18 available < 25 requested), automatically caps test to 18 questions and provides explicit user warning message (`18 bookmarked questions are available, so this test will contain 18 questions`).
-   - **Empty State Guard**: Returns `isEmpty: true` if 0 questions are available, preventing empty test creation.
-2. **`TestGeneratorScreen` (`lib/screens/exam/test_generator_screen.dart`)**:
-   - Segmented mode selector (*Bookmarked Test* vs *Custom/Mixed Test*).
-   - Subject filter chips (*All Subjects*, *History*, *Polity*, *Geography*).
-   - Question count selector (*25* or *50* questions max).
-   - Duration selector (*10m*, *15m*, *20m*, *25m*, *30m*, or *Custom* minutes input).
-   - Live available question calculation & dynamic capping notice card.
-   - Test Preview Modal displaying actual question count, duration, scoring rules (+1.0 / -0.33), and explicit **Start Test** action (timer does not start until pressed).
-3. **Integration with Existing Exam Engine & History**:
-   - Seamlessly initializes `ExamSession` and uses the existing `ExamScreen` (timer, answer selection, re-tap deselect, Save & Next, Previous, Clear Response, Mark for Review, Question Palette, bilingual switcher, submit modal, scoring, results, review, bookmarks).
-   - Saves generated test attempts to `historyProvider` with `practiceType`: `"Bookmarked Test"`, `"Custom Test"`, or `"Mixed Test"`.
-   - Accessible via Launcher cards on `DashboardScreen` and `BookmarksScreen` (`/generator?mode=bookmark` & `/generator?mode=custom`).
+1. **Exam Screen Action Hierarchy Redesign (`lib/screens/exam/exam_screen.dart`)**:
+   - Compact secondary-action row: *Mark for Review* (subtle amber outline) and *Clear Response* (neutral secondary style).
+   - Dedicated primary navigation row: *Previous* (38% flex, single line `maxLines: 1`, no wrapping) and *Save & Next* / *Submit Test* (62% primary dominant action).
+   - Non-truncating AppBar title column, compact language switcher chip, countdown timer chip, and overflow options menu (`⋮`).
+2. **Interactive Single-Question Review Screen (`lib/screens/review/review_screen.dart`)**:
+   - Single question-by-question `PageView` navigation replacing vertical scrolling lists.
+   - Filter bar (*All*, *Correct*, *Wrong*, *Skipped*) updating position counters (*e.g., Q 1 / 5*) and restricting Next/Previous navigation to the filtered subset.
+   - Status indicators (`✓ Correct`, `✕ Wrong Choice`, `— Skipped`), clear option color coding, collapsible explanation section (`ExpansionTile`), per-question bookmark toggle, and review palette drawer.
+   - Returns to Results screen (`/result`) on review completion.
+3. **Repository Transfer & Cleanup**:
+   - Transferred Git repository to root at `mock_master_flutter/` (`.git` located at `mock_master_flutter/.git`).
+   - Simplified Explore Subjects cards to show subject name & icon only. Removed sticky FAB from Dashboard.
+   - Organized SQL schemas in `sql/` and documentation (`instruction.md`, `roadmap.md`, `uiux.md`, `UI-UX Improvement.md`) inside `mock_master_flutter/`.
 
-### What Was Tested:
-- **Bookmarked Test**: Tested with 0 bookmarks (shows informative empty state), partial bookmarks (caps count correctly & displays notice), and all subjects selection.
-- **Custom / Mixed Test**: Tested single subject selection, multi-subject mix, 25 and 50 question counts, standard and custom duration input.
-- **Timer & Preview**: Verified timer only starts after user explicitly presses *Start Test* in preview modal.
-- **Exam Engine Reuse**: Verified answer selection, deselect re-tap, Save & Next, Mark for Review, Question Palette, Submit modal, and Result analytics work identical to standard exams.
-- **Static Analysis**: `flutter analyze` passed with **0 errors and 0 warnings**.
-
-### Known Limitations & Notes for Next Agent:
-- When offline, questions are generated using bundled local asset files (`assets/data/*`). Ensure any newly added chapters have matching asset JSON files if offline generation is required.
-- Custom duration input accepts positive integer minutes.
-
-### Recommended Next Steps for Future Work:
-- Optional: Add historical analytics charts comparing accuracy trends between Bookmarked Tests and Chapter exams.
-- Optional: Add PDF score report export functionality for completed custom tests.
+### Static Analysis & Verification:
+- `flutter analyze` clean: **0 errors, 0 warnings**.
+- Git working tree clean: `master` branch up to date.
 
 ---
 
@@ -246,7 +232,7 @@ SUPABASE_ANON_KEY=sb_publishable_QqW37wq4Q5vTgwCRdpyolg_2eEgG_Aj
 ## 10. Current Status & Next Steps
 
 ```
-Status: 🟢 ALL PHASES & FLEXIBLE TEST GENERATOR COMPLETE
+Status: 🟢 ALL PHASES (1-13) & REPOSITORY CLEANUP COMPLETE
 Static Analysis: 0 Errors, 0 Warnings
 APK Output: build/app/outputs/flutter-apk/app-release.apk
 ```
