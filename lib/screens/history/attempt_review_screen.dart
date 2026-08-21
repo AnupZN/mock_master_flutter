@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../models/attempt_history.dart';
 import '../../models/question.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../services/chapter_service.dart';
 import '../../widgets/markdown_text.dart';
 
@@ -324,6 +325,8 @@ class _AttemptReviewScreenState extends ConsumerState<AttemptReviewScreen> {
 
                     return _QuestionCard(
                       question: q,
+                      subjectId: widget.attempt.subjectId,
+                      chapterId: widget.attempt.chapterId,
                       questionNumber: index + 1,
                       totalQuestions: filtered.length,
                       userAnswer: userAnswer,
@@ -529,8 +532,10 @@ class _AttemptReviewScreenState extends ConsumerState<AttemptReviewScreen> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _QuestionCard extends StatefulWidget {
+class _QuestionCard extends ConsumerStatefulWidget {
   final Question question;
+  final String subjectId;
+  final String chapterId;
   final int questionNumber;
   final int totalQuestions;
   final int? userAnswer;
@@ -542,6 +547,8 @@ class _QuestionCard extends StatefulWidget {
 
   const _QuestionCard({
     required this.question,
+    required this.subjectId,
+    required this.chapterId,
     required this.questionNumber,
     required this.totalQuestions,
     required this.userAnswer,
@@ -553,16 +560,20 @@ class _QuestionCard extends StatefulWidget {
   });
 
   @override
-  State<_QuestionCard> createState() => _QuestionCardState();
+  ConsumerState<_QuestionCard> createState() => _QuestionCardState();
 }
 
-class _QuestionCardState extends State<_QuestionCard> {
+class _QuestionCardState extends ConsumerState<_QuestionCard> {
   bool _showExplanation = true;
 
   @override
   Widget build(BuildContext context) {
     final q = widget.question;
     final isDark = widget.isDark;
+    final bookmarks = ref.watch(bookmarksProvider);
+    final isBookmarked = bookmarks.any(
+      (b) => b.subjectId == widget.subjectId && b.chapterId == widget.chapterId && b.questionId == q.id,
+    );
 
     // Status colors and labels
     Color statusColor;
@@ -594,7 +605,7 @@ class _QuestionCardState extends State<_QuestionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Status badge ───────────────────────────────────────────────
+          // ── Status badge & Bookmark option ──────────────────────────────
           Row(
             children: [
               Icon(statusIcon, size: 16, color: statusColor),
@@ -614,6 +625,26 @@ class _QuestionCardState extends State<_QuestionCard> {
                   fontSize: 12,
                   color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                 ),
+              ),
+              const Spacer(),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: Icon(
+                  isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+                  color: isBookmarked
+                      ? Theme.of(context).colorScheme.primary
+                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  size: 22,
+                ),
+                tooltip: isBookmarked ? 'Remove Bookmark' : 'Bookmark Question',
+                onPressed: () {
+                  ref.read(bookmarksProvider.notifier).toggle(
+                        widget.subjectId,
+                        widget.chapterId,
+                        q.id,
+                      );
+                },
               ),
             ],
           ),

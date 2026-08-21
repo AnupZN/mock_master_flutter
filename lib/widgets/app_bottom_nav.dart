@@ -10,8 +10,7 @@ class AppBottomNav extends ConsumerWidget {
     if (location.startsWith('/dashboard')) return 0;
     if (location.startsWith('/subjects')) return 1;
     if (location.startsWith('/bookmarks')) return 2;
-    if (location.startsWith('/leaderboard')) return 3;
-    if (location.startsWith('/settings')) return 4;
+    if (location.startsWith('/settings')) return 3;
     return 0;
   }
 
@@ -27,9 +26,6 @@ class AppBottomNav extends ConsumerWidget {
         context.go('/bookmarks');
         break;
       case 3:
-        context.go('/leaderboard');
-        break;
-      case 4:
         context.go('/settings');
         break;
     }
@@ -54,11 +50,6 @@ class AppBottomNav extends ConsumerWidget {
         icon: Icon(Icons.bookmark_outline_rounded),
         selectedIcon: Icon(Icons.bookmark_rounded),
         label: 'Bookmarks',
-      ),
-      const NavigationDestination(
-        icon: Icon(Icons.emoji_events_outlined),
-        selectedIcon: Icon(Icons.emoji_events_rounded),
-        label: 'Rankings',
       ),
       const NavigationDestination(
         icon: Icon(Icons.person_outline_rounded),

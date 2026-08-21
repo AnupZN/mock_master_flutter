@@ -481,7 +481,7 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
           children: [
             // Sub-Header: Question Progress Pill & Palette Button
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -558,12 +558,12 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
                   final currentAnswer = session.userAnswers[q.id];
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         MarkdownText(text: questionText),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         ...List.generate(options.length, (optIdx) {
                           final isSelected = currentAnswer == optIdx;
                           return OptionTile(
@@ -583,140 +583,109 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
               ),
             ),
 
-            // Sticky Bottom Comprehensive Navigation Action Area
+            // Sticky Bottom Compact Exam Navigation Bar (3 Buttons: Previous, Mark for Review, Save & Next)
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
               child: SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                top: false,
+                child: Row(
                   children: [
-                    // Row 1: Compact Secondary Actions (Mark for Review & Clear Response)
-                    Row(
-                      children: [
-                        // Mark for Review (Subtle Amber Outline)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFD97706),
-                              side: const BorderSide(color: Color(0xFFD97706), width: 1.2),
-                              backgroundColor: isMarked ? const Color(0xFFF59E0B).withValues(alpha: 0.12) : null,
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                              minimumSize: const Size(0, 36),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            icon: Icon(isMarked ? Icons.flag_rounded : Icons.flag_outlined, size: 16),
-                            label: Text(
-                              isMarked ? 'Unmark Review' : 'Mark for Review',
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                            onPressed: () {
-                              ref.read(sessionProvider.notifier).toggleMarkForReview(question.id);
-                            },
-                          ),
+                    // 1. Previous Button (Secondary Outlined, 28% flex)
+                    Expanded(
+                      flex: 28,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: theme.colorScheme.onSurfaceVariant,
+                          side: BorderSide(color: theme.colorScheme.outlineVariant, width: 1.2),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: const Size(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        const SizedBox(width: 10),
-
-                        // Clear Response (Neutral / Secondary Style instead of Red)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.colorScheme.onSurfaceVariant,
-                              side: BorderSide(color: theme.colorScheme.outlineVariant, width: 1.2),
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                              minimumSize: const Size(0, 36),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            icon: const Icon(Icons.clear_all_rounded, size: 16),
-                            label: const Text(
-                              'Clear Response',
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                            onPressed: session.userAnswers[question.id] == null
-                                ? null
-                                : () {
-                                    ref.read(sessionProvider.notifier).updateAnswer(question.id, null);
-                                  },
-                          ),
+                        icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                        label: const Text(
+                          'Previous',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                         ),
-                      ],
+                        onPressed: isFirst ? null : () => _navigateToPage(_currentIndex - 1),
+                      ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(width: 8),
 
-                    // Row 2: Dedicated Navigation Row (Previous 38% flex | Save & Next / Submit 62% flex)
-                    Row(
-                      children: [
-                        // Previous (38% flex) - Single line, never wraps
-                        Expanded(
-                          flex: 38,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              minimumSize: const Size(0, 44),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                            label: const Text(
-                              'Previous',
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                            onPressed: isFirst ? null : () => _navigateToPage(_currentIndex - 1),
-                          ),
+                    // 2. Mark for Review Button (Restrained Amber Accent, 34% flex)
+                    Expanded(
+                      flex: 34,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFD97706),
+                          side: const BorderSide(color: Color(0xFFD97706), width: 1.2),
+                          backgroundColor: isMarked
+                              ? const Color(0xFFF59E0B).withValues(alpha: 0.14)
+                              : const Color(0xFFD97706).withValues(alpha: 0.04),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: const Size(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-
-                        const SizedBox(width: 10),
-
-                        // Save & Next / Submit Test (62% flex) - Primary Dominant Action
-                        Expanded(
-                          flex: 62,
-                          child: FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: isLast ? const Color(0xFF10B981) : theme.colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              minimumSize: const Size(0, 44),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: Icon(
-                              isLast ? Icons.check_circle_outline_rounded : Icons.arrow_forward_rounded,
-                              size: 18,
-                            ),
-                            label: Text(
-                              isLast ? 'Submit Test' : 'Save & Next',
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                            ),
-                            onPressed: () {
-                              if (isLast) {
-                                _confirmSubmitExam();
-                              } else {
-                                _navigateToPage(_currentIndex + 1);
-                              }
-                            },
-                          ),
+                        icon: Icon(isMarked ? Icons.flag_rounded : Icons.flag_outlined, size: 16),
+                        label: Text(
+                          isMarked ? 'Marked' : 'Mark for Review',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
-                      ],
+                        onPressed: () {
+                          ref.read(sessionProvider.notifier).toggleMarkForReview(question.id);
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // 3. Save & Next / Submit Button (Primary High-Emphasis, 38% flex)
+                    Expanded(
+                      flex: 38,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: isLast ? const Color(0xFF10B981) : theme.colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: const Size(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: Icon(
+                          isLast ? Icons.check_circle_outline_rounded : Icons.arrow_forward_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          isLast ? 'Submit Test' : 'Save & Next',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () {
+                          if (isLast) {
+                            _confirmSubmitExam();
+                          } else {
+                            _navigateToPage(_currentIndex + 1);
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),

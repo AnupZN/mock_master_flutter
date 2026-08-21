@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/wrong_question.dart';
 import '../services/wrong_service.dart';
@@ -49,5 +50,18 @@ class WrongQuestionsNotifier extends StateNotifier<List<WrongQuestion>> {
         .toList();
     await _service.removeWrongQuestion(user.id, item);
   }
+
+  Future<void> clear() async {
+    try {
+      state = [];
+      final user = _ref.read(currentUserProvider);
+      if (user != null) {
+        await _service.clearWrongQuestions(user.id);
+      }
+    } catch (e) {
+      debugPrint('WrongQuestionsNotifier.clear error: $e');
+    }
+  }
 }
+
 

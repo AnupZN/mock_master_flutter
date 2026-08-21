@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/subjects_provider.dart';
 import '../../providers/session_provider.dart';
@@ -13,6 +14,8 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final user = ref.watch(currentUserProvider);
+    final displayName = settings.getDisplayName(user);
     final history = ref.watch(historyProvider);
     final subjectsState = ref.watch(subjectsProvider);
     final activeSession = ref.watch(sessionProvider);
@@ -70,7 +73,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         child: Center(
                           child: Text(
-                            (settings.userName.isNotEmpty ? settings.userName : 'U')[0].toUpperCase(),
+                            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'A',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 17,
@@ -94,7 +97,7 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 1),
                             Text(
-                              settings.userName.isNotEmpty ? settings.userName : 'Aspirant',
+                              displayName,
                               style: const TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.bold,
@@ -278,7 +281,9 @@ class DashboardScreen extends ConsumerWidget {
                       _buildPracticeCard(
                         context,
                         title: 'Weak Areas',
-                        subtitle: '${wrongQuestions.length} questions to revisit',
+                        subtitle: wrongQuestions.isEmpty
+                            ? 'Practice more to unlock'
+                            : '${wrongQuestions.length} to revisit',
                         icon: Icons.fitness_center_rounded,
                         color: const Color(0xFFEF4444),
                         onTap: () => context.go('/bookmarks'),
@@ -369,7 +374,8 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                           ),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                             leading: Container(
                               padding: const EdgeInsets.all(9),
                               decoration: BoxDecoration(

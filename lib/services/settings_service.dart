@@ -24,7 +24,7 @@ class SettingsService {
     await prefs.setString(StorageKeys.settings, jsonEncode(settings.toJson()));
   }
 
-  Future<AppSettings?> fetchFromSupabase(String userId) async {
+  Future<AppSettings?> fetchFromSupabase(String userId, {User? user}) async {
     try {
       final data = await _supabase
           .from('users')
@@ -32,14 +32,32 @@ class SettingsService {
           .eq('id', userId)
           .maybeSingle();
 
+      String? metaName;
+      if (user != null && user.userMetadata != null) {
+        final meta = user.userMetadata!;
+        final name = meta['full_name'] ?? meta['display_name'] ?? meta['name'];
+        if (name is String && name.trim().isNotEmpty) {
+          metaName = name.trim();
+        }
+      }
+
       if (data != null) {
+        String dbName = data['user_name'] ?? '';
+        if ((dbName.isEmpty || dbName == 'Guest') && metaName != null && metaName.isNotEmpty) {
+          dbName = metaName;
+          _supabase.from('users').update({'user_name': dbName}).eq('id', userId).then((_) {}).catchError((_) {});
+        }
         return AppSettings(
           isDarkMode: data['is_dark_mode'] ?? false,
           fontSize: (data['font_size'] ?? 16.0).toDouble(),
           dailyTarget: data['daily_target'] ?? 15,
-          userName: data['user_name'] ?? 'Guest',
+          userName: dbName.isNotEmpty ? dbName : 'Guest',
           userTitle: data['user_title'] ?? 'Level 1 Aspirant',
           isAdmin: data['is_admin'] ?? false,
+        );
+      } else if (metaName != null && metaName.isNotEmpty) {
+        return AppSettings(
+          userName: metaName,
         );
       }
     } catch (e) {

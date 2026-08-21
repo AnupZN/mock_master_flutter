@@ -45,5 +45,14 @@ class WrongService {
       debugPrint('WrongService.removeWrongQuestion error: $e');
     }
   }
+
+  Future<void> clearWrongQuestions(String userId) async {
+    try {
+      await _supabase.from('wrong_questions').delete().eq('user_id', userId);
+    } catch (e) {
+      debugPrint('WrongService.clearWrongQuestions error: $e');
+    }
+  }
 }
+
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/auth_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/settings_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -42,11 +43,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (_isLogin) {
         await authService.signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
       } else {
+        final name = _nameCtrl.text.trim();
         await authService.signUp(
           _emailCtrl.text.trim(),
           _passwordCtrl.text,
-          _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
+          name.isNotEmpty ? name : null,
         );
+        if (name.isNotEmpty) {
+          final settingsNotifier = ref.read(settingsProvider.notifier);
+          final currentSettings = ref.read(settingsProvider);
+          await settingsNotifier.updateSettings(currentSettings.copyWith(userName: name));
+          final user = authService.currentUser;
+          if (user != null) {
+            await settingsNotifier.saveToSupabase(user.id);
+          }
+        }
       }
       if (mounted) context.go('/dashboard');
     } catch (e) {

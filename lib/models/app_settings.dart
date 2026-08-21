@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants.dart';
 
 class AppSettings {
@@ -62,4 +63,31 @@ class AppSettings {
       isAdmin: isAdmin ?? this.isAdmin,
     );
   }
+
+  /// Evaluates display name hierarchically:
+  /// 1. userName from settings (if custom and not 'Guest')
+  /// 2. full_name / display_name / name from user.userMetadata
+  /// 3. Email username prefix
+  /// 4. Fallback: 'Aspirant'
+  String getDisplayName(User? user) {
+    if (userName.isNotEmpty && userName != 'Guest') {
+      return userName;
+    }
+    if (user != null && user.userMetadata != null) {
+      final meta = user.userMetadata!;
+      final name = meta['full_name'] ?? meta['display_name'] ?? meta['name'];
+      if (name is String && name.trim().isNotEmpty) {
+        return name.trim();
+      }
+    }
+    if (user != null && user.email != null && user.email!.isNotEmpty) {
+      final parts = user.email!.split('@');
+      if (parts.isNotEmpty && parts[0].isNotEmpty) {
+        final prefix = parts[0];
+        return prefix[0].toUpperCase() + prefix.substring(1);
+      }
+    }
+    return 'Aspirant';
+  }
 }
+

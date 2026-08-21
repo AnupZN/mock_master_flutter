@@ -218,46 +218,105 @@ class _TestGeneratorScreenState extends ConsumerState<TestGeneratorScreen> {
               if (isBilingual) ...[
                 Row(
                   children: [
-                    Icon(Icons.translate_rounded, size: 16, color: theme.colorScheme.primary),
+                    Icon(Icons.translate_rounded,
+                        size: 15, color: theme.colorScheme.primary),
                     const SizedBox(width: 6),
                     Text(
                       'Test Language',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                SegmentedButton<String>(
-                  style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
-                  segments: const [
-                    ButtonSegment(value: kLangEn, label: Text('English'), icon: Icon(Icons.language_rounded, size: 14)),
-                    ButtonSegment(value: kLangHi, label: Text('हिन्दी'), icon: Icon(Icons.translate_rounded, size: 14)),
-                    ButtonSegment(value: kLangBoth, label: Text('English + हिन्दी'), icon: Icon(Icons.swap_horiz_rounded, size: 14)),
-                  ],
-                  selected: {selectedLang},
-                  onSelectionChanged: (newSet) {
-                    setModalState(() => selectedLang = newSet.first);
-                  },
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  selectedLang == kLangBoth
-                      ? 'Displays English & हिन्दी together for all questions'
-                      : selectedLang == kLangHi
-                          ? 'All questions shown in हिन्दी'
-                          : 'All questions shown in English',
-                  style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                ),
+                const SizedBox(height: 8),
+                // Radio-style language tiles (matches chapters screen modal)
+                ...[
+                  (kLangEn, 'English', 'Questions in English'),
+                  (kLangHi, 'हिन्दी', 'Questions in Hindi'),
+                  (kLangBoth, 'English + हिन्दी',
+                      'Both languages shown together'),
+                ].map((opt) {
+                  final (val, label, desc) = opt;
+                  final isChosen = selectedLang == val;
+                  return GestureDetector(
+                    onTap: () =>
+                        setModalState(() => selectedLang = val),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isChosen
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outlineVariant,
+                          width: isChosen ? 1.5 : 1,
+                        ),
+                        color: isChosen
+                            ? theme.colorScheme.primary
+                                .withValues(alpha: 0.08)
+                            : Colors.transparent,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isChosen
+                                ? Icons.radio_button_checked_rounded
+                                : Icons.radio_button_off_rounded,
+                            size: 18,
+                            color: isChosen
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isChosen
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: isChosen
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                desc,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color:
+                                      theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ] else ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                      Icon(Icons.info_outline_rounded,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Text(
                         'English only — no Hindi content available',
-                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),

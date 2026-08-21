@@ -12,6 +12,7 @@ import '../../models/chapter_data.dart';
 import '../../models/subject.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/chapter_action_buttons.dart';
 
 class ChaptersScreen extends ConsumerStatefulWidget {
   final String subjectId;
@@ -119,7 +120,7 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                               ),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(14),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -167,56 +168,26 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Builder(builder: (context) {
-                                    // Count attempts for this specific chapter
                                     final history = ref.watch(historyProvider);
                                     final chapterAttempts = history
                                         .where((h) =>
                                             h.chapterId == chapter.id &&
                                             h.subjectId == subject.id)
                                         .length;
-                                    return Row(
-                                      children: [
-                                        Expanded(
-                                          child: OutlinedButton.icon(
-                                            icon: const Icon(
-                                              Icons.history_rounded,
-                                              size: 15,
-                                            ),
-                                            label: Text(
-                                              chapterAttempts > 0
-                                                  ? 'Attempts ($chapterAttempts)'
-                                                  : 'Review Attempts',
-                                            ),
-                                            style: OutlinedButton.styleFrom(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                            ),
-                                            onPressed: () => context.push(
-                                              '/history/attempts',
-                                              extra: {
-                                                'subjectId': subject.id,
-                                                'chapterId': chapter.id,
-                                                'chapterTitle': chapter.title,
-                                                'subjectName': subject.name,
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: FilledButton.icon(
-                                            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                                            label: const Text('Start Exam'),
-                                            style: FilledButton.styleFrom(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                            ),
-                                            onPressed: () => _startExam(subject, chapter, isPractice: false),
-                                          ),
-                                        ),
-                                      ],
+                                    return ChapterActionButtons(
+                                      attemptCount: chapterAttempts,
+                                      onAttemptsPressed: () => context.push(
+                                        '/history/attempts',
+                                        extra: {
+                                          'subjectId': subject.id,
+                                          'chapterId': chapter.id,
+                                          'chapterTitle': chapter.title,
+                                          'subjectName': subject.name,
+                                        },
+                                      ),
+                                      onStartExamPressed: () => _startExam(
+                                          subject, chapter,
+                                          isPractice: false),
                                     );
                                   }),
                                 ],
@@ -386,15 +357,11 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
 
                 // ── Language selector ────────────────────────────────────
                 const SizedBox(height: 16),
-                if (!isBilingual) ...[]
-                else ...[
+                if (isBilingual) ...[
                   Row(
                     children: [
-                      Icon(
-                        Icons.translate_rounded,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
+                      Icon(Icons.translate_rounded,
+                          size: 15, color: theme.colorScheme.primary),
                       const SizedBox(width: 6),
                       Text(
                         'Test Language',
@@ -406,70 +373,97 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  SegmentedButton<String>(
-                    style: SegmentedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    segments: const [
-                      ButtonSegment(
-                        value: kLangEn,
-                        label: Text('English'),
-                        icon: Icon(Icons.language_rounded, size: 14),
+                  const SizedBox(height: 8),
+                  // Radio-style language tiles
+                  ...[
+                    (kLangEn, 'English', 'Questions in English'),
+                    (kLangHi, 'हिन्दी', 'Questions in Hindi'),
+                    (kLangBoth, 'English + हिन्दी',
+                        'Both languages shown together'),
+                  ].map((opt) {
+                    final (val, label, desc) = opt;
+                    final isChosen = selectedLang == val;
+                    return GestureDetector(
+                      onTap: () =>
+                          setDialogState(() => selectedLang = val),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isChosen
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.outlineVariant,
+                            width: isChosen ? 1.5 : 1,
+                          ),
+                          color: isChosen
+                              ? theme.colorScheme.primary
+                                  .withValues(alpha: 0.08)
+                              : Colors.transparent,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isChosen
+                                  ? Icons.radio_button_checked_rounded
+                                  : Icons.radio_button_off_rounded,
+                              size: 18,
+                              color: isChosen
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isChosen
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isChosen
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  desc,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: theme
+                                        .colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      ButtonSegment(
-                        value: kLangHi,
-                        label: Text('हिन्दी'),
-                        icon: Icon(Icons.translate_rounded, size: 14),
-                      ),
-                      ButtonSegment(
-                        value: kLangBoth,
-                        label: Text('English + हिन्दी'),
-                        icon: Icon(Icons.swap_horiz_rounded, size: 14),
+                    );
+                  }),
+                ] else ...[
+                  // English-only notice
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Text(
+                        'English only — no Hindi content available',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
-                    selected: {selectedLang},
-                    onSelectionChanged: (newSet) {
-                      setDialogState(() => selectedLang = newSet.first);
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    selectedLang == kLangBoth
-                        ? 'Displays English & हिन्दी together for all questions'
-                        : selectedLang == kLangHi
-                            ? 'All questions shown in हिन्दी'
-                            : 'All questions shown in English',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
                   ),
                 ],
-
-                // ── English-only notice (non-bilingual subjects) ──────────
-                if (!isBilingual) ...[]
-                else const SizedBox.shrink(),
-
-                if (!isBilingual)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline_rounded,
-                            size: 14,
-                            color: theme.colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 6),
-                        Text(
-                          'English only — no Hindi content available',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
             actions: [

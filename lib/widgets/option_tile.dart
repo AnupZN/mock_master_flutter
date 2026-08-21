@@ -20,64 +20,81 @@ class OptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     Color backgroundColor = theme.colorScheme.surface;
-    Color borderColor = theme.dividerColor;
-    
+    Color borderColor = theme.colorScheme.outlineVariant;
+    Color prefixBg = theme.colorScheme.surfaceContainerHighest;
+    Color prefixFg = theme.colorScheme.onSurface;
+    double borderWidth = 1;
+
     if (isCorrect == true) {
-      backgroundColor = Colors.green.withValues(alpha: 0.1);
-      borderColor = Colors.green;
+      backgroundColor = const Color(0xFF10B981).withValues(alpha: 0.08);
+      borderColor = const Color(0xFF10B981);
+      prefixBg = const Color(0xFF10B981);
+      prefixFg = Colors.white;
+      borderWidth = 1.5;
     } else if (isCorrect == false) {
-      backgroundColor = Colors.red.withValues(alpha: 0.1);
-      borderColor = Colors.red;
+      backgroundColor = const Color(0xFFEF4444).withValues(alpha: 0.08);
+      borderColor = const Color(0xFFEF4444);
+      prefixBg = const Color(0xFFEF4444);
+      prefixFg = Colors.white;
+      borderWidth = 1.5;
     } else if (isSelected) {
-      backgroundColor = theme.colorScheme.primaryContainer;
+      backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.08);
       borderColor = theme.colorScheme.primary;
+      prefixBg = theme.colorScheme.primary;
+      prefixFg = theme.colorScheme.onPrimary;
+      borderWidth = 1.5;
     }
 
-    return InkWell(
+    Widget trailingIcon;
+    if (isCorrect == true) {
+      trailingIcon = const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18);
+    } else if (isCorrect == false) {
+      trailingIcon = const Icon(Icons.cancel_rounded, color: Color(0xFFEF4444), size: 18);
+    } else if (isSelected) {
+      trailingIcon = Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 18);
+    } else {
+      trailingIcon = const SizedBox.shrink();
+    }
+
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: backgroundColor,
-          border: Border.all(color: borderColor, width: isSelected || isCorrect != null ? 2 : 1),
-          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: borderWidth),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Prefix badge
             Container(
-              width: 32,
-              height: 32,
+              width: 28,
+              height: 28,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
+                color: prefixBg,
               ),
               child: Text(
                 prefix,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                style: TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
+                  color: prefixFg,
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 10),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: MarkdownText(text: text),
-              ),
+              child: MarkdownText(text: text),
             ),
-            if (isCorrect == true)
-              const Icon(Icons.check_circle_rounded, color: Colors.green)
-            else if (isCorrect == false)
-              const Icon(Icons.cancel_rounded, color: Colors.red)
-            else if (isSelected)
-              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            trailingIcon,
           ],
         ),
       ),

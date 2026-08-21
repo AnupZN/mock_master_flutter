@@ -310,7 +310,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       final explanationText = _isHindi && q.explanationHi != null ? q.explanationHi! : q.explanation;
 
                       return SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -430,21 +430,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
                             if (isSkipped) ...[
                               Container(
-                                padding: const EdgeInsets.all(12),
-                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.orange.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.info_outline_rounded, size: 18, color: Colors.orange),
-                                    SizedBox(width: 10),
+                                    Icon(Icons.info_outline_rounded, size: 15, color: Colors.orange),
+                                    SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'You skipped this question during the exam. The correct answer is highlighted in green above.',
-                                        style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold),
+                                        'Not attempted — correct answer is highlighted in green.',
+                                        style: TextStyle(fontSize: 12, color: Colors.orange),
                                       ),
                                     ),
                                   ],
@@ -483,19 +483,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           // 3. Sticky Navigation Action Bar (Previous & Next / Done)
           if (filteredQuestions.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
               child: SafeArea(
+                top: false,
                 child: Row(
                   children: [
                     // Previous Button
@@ -503,9 +504,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       flex: 38,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                          minimumSize: const Size(0, 44),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          foregroundColor: theme.colorScheme.onSurfaceVariant,
+                          side: BorderSide(color: theme.colorScheme.outlineVariant, width: 1.2),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: const Size(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         icon: const Icon(Icons.arrow_back_rounded, size: 16),
                         label: const Text(
@@ -513,13 +516,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                           maxLines: 1,
                           softWrap: false,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                         onPressed: _currentIndex == 0 ? null : () => _navigateToPage(_currentIndex - 1, filteredQuestions.length),
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
 
                     // Next / Done Button
                     Expanded(
@@ -529,22 +532,22 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                           backgroundColor: _currentIndex == filteredQuestions.length - 1
                               ? const Color(0xFF10B981)
                               : theme.colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                          minimumSize: const Size(0, 44),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: const Size(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         icon: Icon(
                           _currentIndex == filteredQuestions.length - 1
                               ? Icons.check_circle_outline_rounded
                               : Icons.arrow_forward_rounded,
-                          size: 18,
+                          size: 16,
                         ),
                         label: Text(
                           _currentIndex == filteredQuestions.length - 1 ? 'Finish Review' : 'Next Question',
                           maxLines: 1,
                           softWrap: false,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                         onPressed: () {
                           if (_currentIndex == filteredQuestions.length - 1) {

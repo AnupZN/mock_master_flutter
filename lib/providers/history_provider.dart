@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/attempt_history.dart';
 import '../services/history_service.dart';
@@ -38,12 +39,16 @@ class HistoryNotifier extends StateNotifier<List<AttemptHistoryItem>> {
   }
 
   Future<void> clear() async {
-    state = [];
-    await _service.saveLocalHistory(state);
-    
-    final user = _ref.read(currentUserProvider);
-    if (user != null) {
-      await _service.clearHistory(user.id);
+    try {
+      state = [];
+      await _service.saveLocalHistory(state);
+      
+      final user = _ref.read(currentUserProvider);
+      if (user != null) {
+        await _service.clearHistory(user.id);
+      }
+    } catch (e) {
+      debugPrint('HistoryNotifier.clear error: $e');
     }
   }
 }

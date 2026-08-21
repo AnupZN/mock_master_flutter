@@ -9,6 +9,8 @@ import '../screens/exam/exam_screen.dart';
 import '../screens/result/result_screen.dart';
 import '../screens/review/review_screen.dart';
 import '../screens/bookmarks/bookmarks_screen.dart';
+import '../screens/bookmarks/bookmark_subject_screen.dart';
+import '../screens/bookmarks/bookmarked_question_viewer_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/leaderboard/leaderboard_screen.dart';
 import '../screens/exam/test_generator_screen.dart';
@@ -55,6 +57,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/bookmarks',
             builder: (context, state) => const BookmarksScreen(),
+          ),
+          GoRoute(
+            path: '/bookmarks/subject',
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>;
+              return BookmarkSubjectScreen(
+                subjectId: extra['subjectId'] as String,
+                subjectName: extra['subjectName'] as String,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/bookmarks/viewer',
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>;
+              return BookmarkedQuestionViewerScreen(
+                subjectId: extra['subjectId'] as String,
+                subjectName: extra['subjectName'] as String,
+                initialIndex: extra['initialIndex'] as int? ?? 0,
+              );
+            },
           ),
           GoRoute(
             path: '/settings',

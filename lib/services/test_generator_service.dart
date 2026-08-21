@@ -32,8 +32,10 @@ class TestGeneratorService {
 
   TestGeneratorService(this._chapterService);
 
-  /// Loads all questions across all chapters for the given subjects
-  Future<List<Question>> _loadAllQuestionsForSubjects(List<Subject> subjects) async {
+  /// Loads all questions across all chapters for the given subjects.
+  /// Used only for custom/mixed tests — NOT for bookmarked tests.
+  Future<List<Question>> _loadAllQuestionsForSubjects(
+      List<Subject> subjects) async {
     final List<Question> allQuestions = [];
 
     for (var subject in subjects) {
@@ -54,7 +56,8 @@ class TestGeneratorService {
             }
           }
         } catch (e) {
-          debugPrint('Error loading chapter ${chapter.id} for subject ${subject.id}: $e');
+          debugPrint(
+              'Error loading chapter ${chapter.id} for subject ${subject.id}: $e');
         }
       }
     }
@@ -62,7 +65,83 @@ class TestGeneratorService {
     return allQuestions;
   }
 
-  /// Count available bookmarked questions for selected subjects
+  /// Loads ONLY the specific chapters that contain bookmarked questions.
+  /// This is an order-of-magnitude faster than loading all chapters.
+  Future<List<Question>> _loadBookmarkedQuestions({
+    required List<Subject> allSubjects,
+    required List<Bookmark> bookmarks,
+    required List<String> targetSubjectIds,
+  }) async {
+    // Filter bookmarks to the target subjects
+    final relevantBookmarks = bookmarks
+        .where((b) => targetSubjectIds.contains(b.subjectId))
+        .toList();
+
+    if (relevantBookmarks.isEmpty) return [];
+
+    // Build a de-duplicated map of (subjectId, chapterId) pairs to load
+    final Set<String> chapterKeys = {};
+    for (final b in relevantBookmarks) {
+      chapterKeys.add('${b.subjectId}::${b.chapterId}');
+    }
+
+    final List<Question> result = [];
+
+    for (final key in chapterKeys) {
+      final parts = key.split('::');
+      final subjectId = parts[0];
+      final chapterId = parts[1];
+
+      final subject = allSubjects.firstWhere(
+        (s) => s.id == subjectId,
+        orElse: () => Subject(
+          id: subjectId,
+          name: subjectId,
+          icon: '',
+          folder: '',
+          chapters: [],
+        ),
+      );
+
+      final chapter = subject.chapters.firstWhere(
+        (c) => c.id == chapterId,
+        orElse: () => Chapter(id: chapterId, title: chapterId),
+      );
+
+      try {
+        final chapterData = await _chapterService.loadChapter(
+          subjectId,
+          chapterId,
+          folder: subject.folder,
+          file: chapter.file,
+        );
+
+        if (chapterData != null) {
+          // Only keep questions that are actually bookmarked in this chapter
+          final chapterBookmarkIds = relevantBookmarks
+              .where((b) => b.subjectId == subjectId && b.chapterId == chapterId)
+              .map((b) => b.questionId)
+              .toSet();
+
+          for (final q in chapterData.questions) {
+            if (chapterBookmarkIds.contains(q.id)) {
+              result.add(q.copyWith(
+                subjectId: subjectId,
+                chapterId: chapterId,
+              ));
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading bookmarked chapter $chapterId: $e');
+      }
+    }
+
+    return result;
+  }
+
+  /// Count available bookmarked questions for selected subjects.
+  /// Fast: only loads chapters that actually have bookmarks.
   Future<int> countAvailableBookmarkedQuestions({
     required List<Subject> allSubjects,
     required List<String> selectedSubjectIds,
@@ -70,37 +149,38 @@ class TestGeneratorService {
   }) async {
     if (bookmarks.isEmpty) return 0;
 
-    final targetSubjectIds = selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all')
-        ? allSubjects.map((s) => s.id).toList()
-        : selectedSubjectIds;
+    final targetSubjectIds =
+        selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all')
+            ? allSubjects.map((s) => s.id).toList()
+            : selectedSubjectIds;
 
-    final targetSubjects = allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
-    final allQuestions = await _loadAllQuestionsForSubjects(targetSubjects);
+    final questions = await _loadBookmarkedQuestions(
+      allSubjects: allSubjects,
+      bookmarks: bookmarks,
+      targetSubjectIds: targetSubjectIds,
+    );
 
-    int count = 0;
-    for (var q in allQuestions) {
-      if (bookmarks.any((b) => (b.subjectId == q.subjectId || targetSubjectIds.contains(b.subjectId)) && b.questionId == q.id)) {
-        count++;
-      }
-    }
-    return count;
+    return questions.length;
   }
 
-  /// Count available total questions for selected subjects
+  /// Count available total questions for selected subjects.
   Future<int> countAvailableCustomQuestions({
     required List<Subject> allSubjects,
     required List<String> selectedSubjectIds,
   }) async {
-    final targetSubjectIds = selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all')
-        ? allSubjects.map((s) => s.id).toList()
-        : selectedSubjectIds;
+    final targetSubjectIds =
+        selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all')
+            ? allSubjects.map((s) => s.id).toList()
+            : selectedSubjectIds;
 
-    final targetSubjects = allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
+    final targetSubjects =
+        allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
     final allQuestions = await _loadAllQuestionsForSubjects(targetSubjects);
     return allQuestions.length;
   }
 
-  /// Generate a Bookmarked Test
+  /// Generate a Bookmarked Test.
+  /// Fast: only loads chapters with bookmarks, matches on subjectId+chapterId+questionId.
   Future<GeneratedTestResult> generateBookmarkedTest({
     required List<Subject> allSubjects,
     required List<String> selectedSubjectIds,
@@ -108,24 +188,26 @@ class TestGeneratorService {
     required int requestedCount,
     required int durationMinutes,
   }) async {
-    final targetSubjectIds = selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all')
-        ? allSubjects.map((s) => s.id).toList()
-        : selectedSubjectIds;
+    final targetSubjectIds =
+        selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all')
+            ? allSubjects.map((s) => s.id).toList()
+            : selectedSubjectIds;
 
-    final targetSubjects = allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
+    final targetSubjects =
+        allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
     final subjectNames = targetSubjects.map((s) => s.name).toList();
 
-    final allQuestions = await _loadAllQuestionsForSubjects(targetSubjects);
-
-    // Filter by bookmarks
-    final bookmarkedQuestions = allQuestions.where((q) {
-      return bookmarks.any((b) => (b.subjectId == q.subjectId || targetSubjectIds.contains(b.subjectId)) && b.questionId == q.id);
-    }).toList();
+    final bookmarkedQuestions = await _loadBookmarkedQuestions(
+      allSubjects: allSubjects,
+      bookmarks: bookmarks,
+      targetSubjectIds: targetSubjectIds,
+    );
 
     if (bookmarkedQuestions.isEmpty) {
       return GeneratedTestResult(
         testType: 'Bookmarked Test',
-        selectedSubjectNames: subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
+        selectedSubjectNames:
+            subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
         requestedQuestionCount: requestedCount,
         actualQuestionCount: 0,
         durationMinutes: durationMinutes,
@@ -135,19 +217,21 @@ class TestGeneratorService {
       );
     }
 
-    // Shuffle bookmarked questions
+    // Shuffle and take the requested count
     final shuffled = List<Question>.from(bookmarkedQuestions)..shuffle(Random());
     final actualCount = min(requestedCount, shuffled.length);
     final selectedQuestions = shuffled.take(actualCount).toList();
 
     String? warning;
     if (actualCount < requestedCount) {
-      warning = '$actualCount bookmarked questions are available, so this test will contain $actualCount questions.';
+      warning =
+          '$actualCount bookmarked question${actualCount == 1 ? '' : 's'} available — the test will contain $actualCount question${actualCount == 1 ? '' : 's'}.';
     }
 
     return GeneratedTestResult(
       testType: 'Bookmarked Test',
-      selectedSubjectNames: subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
+      selectedSubjectNames:
+          subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
       requestedQuestionCount: requestedCount,
       actualQuestionCount: actualCount,
       durationMinutes: durationMinutes,
@@ -157,25 +241,32 @@ class TestGeneratorService {
     );
   }
 
-  /// Generate a Custom / Mixed Test
+  /// Generate a Custom / Mixed Test.
   Future<GeneratedTestResult> generateCustomTest({
     required List<Subject> allSubjects,
     required List<String> selectedSubjectIds,
     required int requestedCount,
     required int durationMinutes,
   }) async {
-    final isAllSubjects = selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all');
-    final targetSubjectIds = isAllSubjects ? allSubjects.map((s) => s.id).toList() : selectedSubjectIds;
+    final isAllSubjects =
+        selectedSubjectIds.isEmpty || selectedSubjectIds.contains('all');
+    final targetSubjectIds = isAllSubjects
+        ? allSubjects.map((s) => s.id).toList()
+        : selectedSubjectIds;
 
-    final targetSubjects = allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
+    final targetSubjects =
+        allSubjects.where((s) => targetSubjectIds.contains(s.id)).toList();
     final subjectNames = targetSubjects.map((s) => s.name).toList();
 
     final allQuestions = await _loadAllQuestionsForSubjects(targetSubjects);
 
     if (allQuestions.isEmpty) {
       return GeneratedTestResult(
-        testType: isAllSubjects || targetSubjects.length > 1 ? 'Mixed Test' : 'Custom Test',
-        selectedSubjectNames: subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
+        testType: isAllSubjects || targetSubjects.length > 1
+            ? 'Mixed Test'
+            : 'Custom Test',
+        selectedSubjectNames:
+            subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
         requestedQuestionCount: requestedCount,
         actualQuestionCount: 0,
         durationMinutes: durationMinutes,
@@ -192,14 +283,17 @@ class TestGeneratorService {
 
     String? warning;
     if (actualCount < requestedCount) {
-      warning = '$actualCount total questions are available across the selected subjects, so this test will contain $actualCount questions.';
+      warning =
+          '$actualCount total question${actualCount == 1 ? '' : 's'} available — the test will contain $actualCount question${actualCount == 1 ? '' : 's'}.';
     }
 
-    final testTypeLabel = (isAllSubjects || targetSubjects.length > 1) ? 'Mixed Test' : 'Custom Test';
+    final testTypeLabel =
+        (isAllSubjects || targetSubjects.length > 1) ? 'Mixed Test' : 'Custom Test';
 
     return GeneratedTestResult(
       testType: testTypeLabel,
-      selectedSubjectNames: subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
+      selectedSubjectNames:
+          subjectNames.isEmpty ? ['All Subjects'] : subjectNames,
       requestedQuestionCount: requestedCount,
       actualQuestionCount: actualCount,
       durationMinutes: durationMinutes,
