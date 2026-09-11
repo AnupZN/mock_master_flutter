@@ -55,6 +55,12 @@ class SessionNotifier extends StateNotifier<ExamSession?> {
     _saveToStorage();
   }
 
+  void updateTestLanguage(String lang) {
+    if (state == null) return;
+    state = state!.copyWith(testLanguage: lang);
+    _saveToStorage();
+  }
+
   Future<void> clearSession() async {
     state = null;
     final prefs = await SharedPreferences.getInstance();

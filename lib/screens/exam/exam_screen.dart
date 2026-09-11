@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../models/attempt_history.dart';
 import '../../models/exam_session.dart';
 import '../../services/report_service.dart';
@@ -22,7 +23,6 @@ class ExamScreen extends ConsumerStatefulWidget {
 class _ExamScreenState extends ConsumerState<ExamScreen> {
   int _currentIndex = 0;
   Timer? _timer;
-  bool _isHindi = false;
   // ARCH-2: _examStarted ensures the timer only fires after the UI is fully
   // ready — it must not auto-start during any loading delay or transition.
   bool _examStarted = false;
@@ -34,14 +34,10 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final session = ref.read(sessionProvider);
       if (session != null) {
-        if (session.testLanguage == kLangHi) {
-          setState(() {
-            _isHindi = true;
-          });
-        } else {
-          setState(() {
-            _isHindi = false;
-          });
+        // Normalise legacy 'both' sessions: treat them as English so the
+        // in-exam toggle has a defined starting point.
+        if (session.testLanguage == kLangBoth) {
+          ref.read(sessionProvider.notifier).updateTestLanguage(kLangEn);
         }
         if (session.questions.isNotEmpty) {
           ref.read(sessionProvider.notifier).markVisited(session.questions[0].id);
@@ -85,6 +81,15 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     final m = (seconds / 60).floor().toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
+  }
+
+  /// Toggle between English and Hindi, persisting the choice in the session so
+  /// it survives hot-reload and app-resume without touching any other state.
+  void _toggleLanguage() {
+    final session = ref.read(sessionProvider);
+    if (session == null) return;
+    final newLang = session.testLanguage == kLangHi ? kLangEn : kLangHi;
+    ref.read(sessionProvider.notifier).updateTestLanguage(newLang);
   }
 
   void _confirmSubmitExam() {
@@ -213,6 +218,9 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     );
 
     ref.read(historyProvider.notifier).add(historyItem);
+    // Clear the active session so the dashboard no longer shows "Resume Test"
+    // for a test that has already been submitted.
+    ref.read(sessionProvider.notifier).clearSession();
     context.go('/result');
   }
 
@@ -343,6 +351,22 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Determine current language state from session (source of truth).
+    final currentlyHindi = session.testLanguage == kLangHi;
+    // A question is bilingual when it has Hindi content.
+    final sessionHasBilingualContent = session.questions.any(
+      (q) => q.questionHi != null && q.questionHi!.isNotEmpty,
+    );
+
+    // Bookmark state for current question.
+    final bookmarks = ref.watch(bookmarksProvider);
+    final isBookmarked = bookmarks.any(
+      (b) =>
+          b.subjectId == session.subjectId &&
+          b.chapterId == session.chapterId &&
+          b.questionId == question.id,
+    );
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -386,21 +410,51 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
             ],
           ),
           actions: [
-            // Language Indicator Chip
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+            // ── Language Toggle Button ──────────────────────────────────────
+            // Shown only when the question set has bilingual content so the
+            // toggle is meaningful. Tapping switches EN↔HI in real-time
+            // without losing answers, timer, bookmarks, or progress.
+            if (sessionHasBilingualContent)
+              Tooltip(
+                message: currentlyHindi ? 'Switch to English' : 'Switch to Hindi',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: _toggleLanguage,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.translate_rounded, size: 13, color: theme.colorScheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          currentlyHindi ? 'हिन्दी' : 'English',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              // Non-bilingual: show static English label.
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'English',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                ),
               ),
-              child: Text(
-                session.testLanguage == kLangBoth
-                    ? 'English + हिन्दी'
-                    : (session.testLanguage == kLangHi ? 'हिन्दी' : 'English'),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-              ),
-            ),
             const SizedBox(width: 6),
 
             // Countdown Timer Chip
@@ -479,7 +533,7 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
         ),
         body: Column(
           children: [
-            // Sub-Header: Question Progress Pill & Palette Button
+            // Sub-Header: Question Progress Pill, Bookmark, & Palette Button
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
@@ -517,16 +571,64 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
                           ),
                         ),
                       ],
+                      // ── Bookmark status badge ────────────────────────────
+                      if (isBookmarked) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.5)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.bookmark_rounded, size: 12, color: Color(0xFF4F46E5)),
+                              SizedBox(width: 4),
+                              Text('Bookmarked', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      minimumSize: Size.zero,
-                    ),
-                    icon: const Icon(Icons.grid_view_rounded, size: 16),
-                    label: const Text('Palette', style: TextStyle(fontSize: 12)),
-                    onPressed: () => _showPaletteBottomSheet(context, session),
+                  Row(
+                    children: [
+                      // ── Bookmark icon button ──────────────────────────────
+                      Tooltip(
+                        message: isBookmarked ? 'Remove bookmark' : 'Bookmark this question',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () {
+                            ref.read(bookmarksProvider.notifier).toggle(
+                              session.subjectId,
+                              session.chapterId,
+                              question.id,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(
+                              isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                              size: 20,
+                              color: isBookmarked
+                                  ? const Color(0xFF4F46E5)
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          minimumSize: Size.zero,
+                        ),
+                        icon: const Icon(Icons.grid_view_rounded, size: 16),
+                        label: const Text('Palette', style: TextStyle(fontSize: 12)),
+                        onPressed: () => _showPaletteBottomSheet(context, session),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -543,17 +645,14 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
                   String questionText;
                   List<String> options;
 
-                  if (session.testLanguage == kLangBoth) {
-                    final hasHiQuestion = q.questionHi != null && q.questionHi!.isNotEmpty;
-                    questionText = hasHiQuestion ? '${q.question}\n\n---\n\n${q.questionHi!}' : q.question;
-                    options = List.generate(q.options.length, (optIdx) {
-                      final hasHiOpt = q.optionsHi != null && optIdx < q.optionsHi!.length && q.optionsHi![optIdx].isNotEmpty;
-                      return hasHiOpt ? '${q.options[optIdx]}\n${q.optionsHi![optIdx]}' : q.options[optIdx];
-                    });
-                  } else {
-                    questionText = _isHindi && q.questionHi != null && q.questionHi!.isNotEmpty ? q.questionHi! : q.question;
-                    options = _isHindi && q.optionsHi != null ? q.optionsHi! : q.options;
-                  }
+                  // Language rendering: use session.testLanguage as the single
+                  // source of truth. 'both' is treated as English (legacy
+                  // sessions are normalised to 'en' on startup above).
+                  final showHindi = session.testLanguage == kLangHi;
+                  questionText = showHindi && q.questionHi != null && q.questionHi!.isNotEmpty
+                      ? q.questionHi!
+                      : q.question;
+                  options = showHindi && q.optionsHi != null ? q.optionsHi! : q.options;
 
                   final currentAnswer = session.userAnswers[q.id];
 
@@ -697,4 +796,3 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     );
   }
 }
-

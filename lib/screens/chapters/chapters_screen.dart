@@ -378,8 +378,6 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                   ...[
                     (kLangEn, 'English', 'Questions in English'),
                     (kLangHi, 'हिन्दी', 'Questions in Hindi'),
-                    (kLangBoth, 'English + हिन्दी',
-                        'Both languages shown together'),
                   ].map((opt) {
                     final (val, label, desc) = opt;
                     final isChosen = selectedLang == val;
