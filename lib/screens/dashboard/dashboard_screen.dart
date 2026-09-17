@@ -7,6 +7,7 @@ import '../../providers/history_provider.dart';
 import '../../providers/subjects_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/wrong_provider.dart';
+import '../../models/attempt_history.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -154,7 +155,7 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
 
                   // ── Resumable Test Card ───────────────────────────────────
-                  if (activeSession != null) ...[
+                  if (activeSession != null && !activeSession.isCompleted) ...[
                     Container(
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E1B4B) : const Color(0xFFEEF2FF),
@@ -271,9 +272,9 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       _buildPracticeCard(
                         context,
-                        title: 'Random Practice',
-                        subtitle: 'Surprise question set',
-                        icon: Icons.shuffle_rounded,
+                        title: 'Bookmarked Test',
+                        subtitle: 'Practice saved questions',
+                        icon: Icons.bookmark_added_rounded,
                         color: const Color(0xFF7C3AED),
                         onTap: () => context.push('/generator?mode=bookmark'),
                         isDark: isDark,
@@ -282,11 +283,22 @@ class DashboardScreen extends ConsumerWidget {
                         context,
                         title: 'Weak Areas',
                         subtitle: wrongQuestions.isEmpty
-                            ? 'Practice more to unlock'
+                            ? 'All clear! No weak spots'
                             : '${wrongQuestions.length} to revisit',
                         icon: Icons.fitness_center_rounded,
                         color: const Color(0xFFEF4444),
-                        onTap: () => context.go('/bookmarks'),
+                        onTap: () {
+                          if (wrongQuestions.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Great job! You have no wrong questions to review.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          } else {
+                            context.push('/generator?mode=custom');
+                          }
+                        },
                         isDark: isDark,
                       ),
                     ],
@@ -307,7 +319,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       if (history.isNotEmpty)
                         TextButton(
-                          onPressed: () => context.go('/subjects'),
+                          onPressed: () => _showAllHistorySheet(context, history, isDark),
                           child: const Text('View All'),
                         ),
                     ],
@@ -376,6 +388,15 @@ class DashboardScreen extends ConsumerWidget {
                           child: ListTile(
                             contentPadding:
                                 const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            onTap: () {
+                              context.push(
+                                '/history/review',
+                                extra: {
+                                  'attempt': item,
+                                  'attemptNumber': history.length - index,
+                                },
+                              );
+                            },
                             leading: Container(
                               padding: const EdgeInsets.all(9),
                               decoration: BoxDecoration(
@@ -548,6 +569,162 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  String _formatAttemptDate(String isoDate) {
+    try {
+      final dt = DateTime.parse(isoDate).toLocal();
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
+  void _showAllHistorySheet(BuildContext context, List<AttemptHistoryItem> history, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'All Attempt History (${history.length})',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: history.length,
+                      itemBuilder: (context, index) {
+                        final item = history[index];
+                        final pct = item.maxScore > 0 ? (item.score / item.maxScore) * 100 : 0.0;
+                        Color badgeColor = const Color(0xFF10B981);
+                        if (pct < 50) {
+                          badgeColor = const Color(0xFFEF4444);
+                        } else if (pct < 75) {
+                          badgeColor = const Color(0xFFF59E0B);
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              context.push(
+                                '/history/review',
+                                extra: {
+                                  'attempt': item,
+                                  'attemptNumber': history.length - index,
+                                },
+                              );
+                            },
+                            leading: Container(
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.assignment_turned_in_rounded, color: badgeColor, size: 20),
+                            ),
+                            title: Text(
+                              item.chapterTitle,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                '${item.subjectName} · ${_formatAttemptDate(item.date)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${item.score.toStringAsFixed(1)} / ${item.maxScore.toStringAsFixed(1)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: badgeColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: badgeColor.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${pct.toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: badgeColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

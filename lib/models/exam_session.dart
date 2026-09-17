@@ -25,6 +25,7 @@ class ExamSession {
   final double negativeMarks;
   /// Language code chosen before starting. See kLangEn / kLangHi / kLangBoth.
   final String testLanguage;
+  final bool isCompleted;
 
   ExamSession({
     required this.subjectId,
@@ -42,6 +43,7 @@ class ExamSession {
     required this.positiveMarks,
     required this.negativeMarks,
     this.testLanguage = kLangEn,
+    this.isCompleted = false,
   });
 
   factory ExamSession.fromJson(Map<String, dynamic> json) {
@@ -87,6 +89,7 @@ class ExamSession {
       positiveMarks: (json['positiveMarks'] ?? 1.0).toDouble(),
       negativeMarks: (json['negativeMarks'] ?? 0.0).toDouble(),
       testLanguage: json['testLanguage'] ?? kLangEn,
+      isCompleted: json['isCompleted'] ?? false,
     );
   }
 
@@ -107,6 +110,7 @@ class ExamSession {
       'positiveMarks': positiveMarks,
       'negativeMarks': negativeMarks,
       'testLanguage': testLanguage,
+      'isCompleted': isCompleted,
     };
   }
 
@@ -126,6 +130,7 @@ class ExamSession {
     double? positiveMarks,
     double? negativeMarks,
     String? testLanguage,
+    bool? isCompleted,
   }) {
     return ExamSession(
       subjectId: subjectId ?? this.subjectId,
@@ -143,6 +148,7 @@ class ExamSession {
       positiveMarks: positiveMarks ?? this.positiveMarks,
       negativeMarks: negativeMarks ?? this.negativeMarks,
       testLanguage: testLanguage ?? this.testLanguage,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
   }
 }

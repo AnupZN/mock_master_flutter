@@ -6,6 +6,7 @@ import '../../providers/session_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmarks_provider.dart';
+import '../../providers/wrong_provider.dart';
 import '../../models/attempt_history.dart';
 import '../../models/exam_session.dart';
 import '../../services/report_service.dart';
@@ -188,8 +189,12 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
         skipped++;
       } else if (ans == q.correct) {
         correct++;
+        // If question was previously in weak areas, resolve it now that user got it right
+        ref.read(wrongQuestionsProvider.notifier).remove(session.subjectId, session.chapterId, q.id);
       } else {
         wrong++;
+        // Record wrong question in weak areas
+        ref.read(wrongQuestionsProvider.notifier).add(session.subjectId, session.chapterId, q.id);
       }
     }
 
@@ -218,9 +223,9 @@ class _ExamScreenState extends ConsumerState<ExamScreen> {
     );
 
     ref.read(historyProvider.notifier).add(historyItem);
-    // Clear the active session so the dashboard no longer shows "Resume Test"
-    // for a test that has already been submitted.
-    ref.read(sessionProvider.notifier).clearSession();
+    // Mark the active session as completed and remove it from disk so dashboard
+    // won't offer "Resume Test", while keeping it accessible in memory for Review Answers.
+    ref.read(sessionProvider.notifier).completeSession();
     context.go('/result');
   }
 

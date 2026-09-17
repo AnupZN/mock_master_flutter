@@ -61,6 +61,16 @@ class SessionNotifier extends StateNotifier<ExamSession?> {
     _saveToStorage();
   }
 
+  /// Marks the current session as completed in memory and clears it from persistent
+  /// storage so it won't appear on the dashboard as resumable, while still allowing
+  /// the user to review their answers on the Result and Review screens.
+  Future<void> completeSession() async {
+    if (state == null) return;
+    state = state!.copyWith(isCompleted: true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(StorageKeys.resumeSession);
+  }
+
   Future<void> clearSession() async {
     state = null;
     final prefs = await SharedPreferences.getInstance();
@@ -68,7 +78,7 @@ class SessionNotifier extends StateNotifier<ExamSession?> {
   }
 
   Future<void> _saveToStorage() async {
-    if (state == null) return;
+    if (state == null || state!.isCompleted) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(StorageKeys.resumeSession, jsonEncode(state!.toJson()));
   }
@@ -78,7 +88,12 @@ class SessionNotifier extends StateNotifier<ExamSession?> {
     final data = prefs.getString(StorageKeys.resumeSession);
     if (data != null) {
       try {
-        state = ExamSession.fromJson(jsonDecode(data));
+        final session = ExamSession.fromJson(jsonDecode(data));
+        if (!session.isCompleted) {
+          state = session;
+        } else {
+          await clearSession();
+        }
       } catch (e) {
         await clearSession();
       }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/history_provider.dart';
+import '../../providers/session_provider.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
@@ -54,11 +55,26 @@ class ResultScreen extends ConsumerWidget {
     // Safe accuracy: never show −0%
     final displayAccuracy = result.accuracy.abs();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Test Result'),
-        centerTitle: true,
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        ref.read(sessionProvider.notifier).clearSession();
+        context.go('/dashboard');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Test Result'),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Dashboard',
+            onPressed: () {
+              ref.read(sessionProvider.notifier).clearSession();
+              context.go('/dashboard');
+            },
+          ),
+        ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
@@ -247,11 +263,15 @@ class ResultScreen extends ConsumerWidget {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.home_outlined),
                 label: const Text('Back to Dashboard'),
-                onPressed: () => context.go('/dashboard'),
+                onPressed: () {
+                  ref.read(sessionProvider.notifier).clearSession();
+                  context.go('/dashboard');
+                },
               ),
             ),
           ],
         ),
+      ),
       ),
     );
   }

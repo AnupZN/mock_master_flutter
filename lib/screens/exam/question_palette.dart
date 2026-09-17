@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/exam_session.dart';
+import '../../providers/bookmarks_provider.dart';
 
-class QuestionPalette extends StatelessWidget {
+class QuestionPalette extends ConsumerWidget {
   final ExamSession session;
   final int currentIndex;
   final Function(int) onQuestionSelected;
@@ -14,16 +16,29 @@ class QuestionPalette extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookmarks = ref.watch(bookmarksProvider);
+
     int answered = 0;
     int marked = 0;
     int visitedUnanswered = 0;
     int notVisited = 0;
+    int bookmarkedCount = 0;
 
     for (var q in session.questions) {
       final isAns = session.userAnswers[q.id] != null;
       final isMrk = session.markedForReview[q.id] == true;
       final isVis = session.visitedQuestions[q.id] == true;
+      final isBkm = bookmarks.any(
+        (b) =>
+            b.subjectId == session.subjectId &&
+            b.chapterId == session.chapterId &&
+            b.questionId == q.id,
+      );
+
+      if (isBkm) {
+        bookmarkedCount++;
+      }
 
       if (isMrk) {
         marked++;
@@ -71,6 +86,8 @@ class QuestionPalette extends StatelessWidget {
             children: [
               _buildStatBadge('Answered: $answered', const Color(0xFF10B981), Colors.white, Icons.check_circle_rounded),
               _buildStatBadge('Marked: $marked', const Color(0xFFF59E0B), Colors.white, Icons.flag_rounded),
+              if (bookmarkedCount > 0)
+                _buildStatBadge('Bookmarked: $bookmarkedCount', const Color(0xFF4F46E5), Colors.white, Icons.bookmark_rounded),
               _buildStatBadge('Unanswered: $visitedUnanswered', isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), isDark ? Colors.white : Colors.black87, Icons.remove_circle_outline),
               _buildStatBadge('Not Visited: $notVisited', isDark ? Colors.white10 : Colors.black12, isDark ? Colors.white70 : Colors.black54, Icons.circle_outlined),
             ],
@@ -94,6 +111,12 @@ class QuestionPalette extends StatelessWidget {
                 final isMarked = session.markedForReview[q.id] == true;
                 final isVisited = session.visitedQuestions[q.id] == true;
                 final isCurrent = index == currentIndex;
+                final isBookmarked = bookmarks.any(
+                  (b) =>
+                      b.subjectId == session.subjectId &&
+                      b.chapterId == session.chapterId &&
+                      b.questionId == q.id,
+                );
 
                 Color bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
                 Color textColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -139,10 +162,24 @@ class QuestionPalette extends StatelessWidget {
                             color: textColor,
                           ),
                         ),
+                        // Top-left bookmark icon
+                        if (isBookmarked)
+                          Positioned(
+                            top: 4,
+                            left: 4,
+                            child: Icon(
+                              Icons.bookmark_rounded,
+                              size: 11,
+                              color: (isMarked || isAnswered)
+                                  ? Colors.white.withValues(alpha: 0.9)
+                                  : const Color(0xFF4F46E5),
+                            ),
+                          ),
+                        // Top-right status icon (check or flag)
                         if (icon != null)
                           Positioned(
-                            top: 3,
-                            right: 3,
+                            top: 4,
+                            right: 4,
                             child: Icon(icon, size: 10, color: textColor),
                           ),
                       ],
