@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +8,10 @@ import '../../services/chapter_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/history_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../models/exam_session.dart';
 import '../../models/chapter_data.dart';
+import '../../models/question.dart';
 import '../../models/subject.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
@@ -246,10 +249,12 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
       selectedLang = prefs.getString(prefKey) ?? kLangEn;
     }
 
+    bool shuffleQuestions = ref.read(settingsProvider).shuffleQuestions;
+
     if (!mounted) return;
 
     // ── Show dialog with StatefulBuilder so the picker re-renders ─────────
-    final result = await showDialog<String>(
+    final result = await showDialog<({String language, bool shuffle})>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
@@ -286,183 +291,238 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
                 ),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Divider(),
-                const SizedBox(height: 12),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(),
+                  const SizedBox(height: 12),
 
-                // ── Question count + duration row ────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildOverviewStat(
-                      Icons.quiz_outlined,
-                      '${data.questions.length}',
-                      'Questions',
-                    ),
-                    _buildOverviewStat(
-                      Icons.hourglass_bottom_rounded,
-                      isPractice ? 'Untimed' : '$totalTimeMins Mins',
-                      'Duration',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // ── Marking scheme + language info ───────────────────────
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Marking Scheme:',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                          Text(
-                            '+${data.positiveMarks} / -${data.negativeMarks}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.indigo,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Content:',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                          Text(
-                            isBilingual ? 'English + हिन्दी' : 'English only',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isBilingual ? Colors.indigo : theme.colorScheme.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── Language selector ────────────────────────────────────
-                const SizedBox(height: 16),
-                if (isBilingual) ...[
+                  // ── Question count + duration row ────────────────────────
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Icon(Icons.translate_rounded,
-                          size: 15, color: theme.colorScheme.primary),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Test Language',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
-                        ),
+                      _buildOverviewStat(
+                        Icons.quiz_outlined,
+                        '${data.questions.length}',
+                        'Questions',
+                      ),
+                      _buildOverviewStat(
+                        Icons.hourglass_bottom_rounded,
+                        isPractice ? 'Untimed' : '$totalTimeMins Mins',
+                        'Duration',
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // Radio-style language tiles
-                  ...[
-                    (kLangEn, 'English', 'Questions in English'),
-                    (kLangHi, 'हिन्दी', 'Questions in Hindi'),
-                  ].map((opt) {
-                    final (val, label, desc) = opt;
-                    final isChosen = selectedLang == val;
-                    return GestureDetector(
-                      onTap: () =>
-                          setDialogState(() => selectedLang = val),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isChosen
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.outlineVariant,
-                            width: isChosen ? 1.5 : 1,
-                          ),
-                          color: isChosen
-                              ? theme.colorScheme.primary
-                                  .withValues(alpha: 0.08)
-                              : Colors.transparent,
-                        ),
-                        child: Row(
+                  const SizedBox(height: 16),
+
+                  // ── Marking scheme + language info ───────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              isChosen
-                                  ? Icons.radio_button_checked_rounded
-                                  : Icons.radio_button_off_rounded,
-                              size: 18,
-                              color: isChosen
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  label,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: isChosen
-                                        ? FontWeight.bold
-                                        : FontWeight.w500,
-                                    color: isChosen
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                                Text(
-                                  desc,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: theme
-                                        .colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
+                            const Text('Marking Scheme:',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                            Text(
+                              '+${data.positiveMarks} / -${data.negativeMarks}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.indigo,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  }),
-                ] else ...[
-                  // English-only notice
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline_rounded,
-                          size: 14,
-                          color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 6),
-                      Text(
-                        'English only — no Hindi content available',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.colorScheme.onSurfaceVariant,
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Content:',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                            Text(
+                              isBilingual ? 'English + हिन्दी' : 'English only',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isBilingual ? Colors.indigo : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
                         ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Language selector ────────────────────────────────────
+                  const SizedBox(height: 16),
+                  if (isBilingual) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.translate_rounded,
+                            size: 15, color: theme.colorScheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Test Language',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Radio-style language tiles
+                    ...[
+                      (kLangEn, 'English', 'Questions in English'),
+                      (kLangHi, 'हिन्दी', 'Questions in Hindi'),
+                    ].map((opt) {
+                      final (val, label, desc) = opt;
+                      final isChosen = selectedLang == val;
+                      return GestureDetector(
+                        onTap: () =>
+                            setDialogState(() => selectedLang = val),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isChosen
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.outlineVariant,
+                              width: isChosen ? 1.5 : 1,
+                            ),
+                            color: isChosen
+                                ? theme.colorScheme.primary
+                                    .withValues(alpha: 0.08)
+                                : Colors.transparent,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isChosen
+                                    ? Icons.radio_button_checked_rounded
+                                    : Icons.radio_button_off_rounded,
+                                size: 18,
+                                color: isChosen
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isChosen
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color: isChosen
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  Text(
+                                    desc,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: theme
+                                          .colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ] else ...[
+                    // English-only notice
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded,
+                            size: 14,
+                            color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Text(
+                          'English only — no Hindi content available',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // ── Shuffle Questions toggle ─────────────────────────────
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
+                        width: 1,
                       ),
-                    ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.shuffle_rounded,
+                          size: 20,
+                          color: shuffleQuestions ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Shuffle Questions',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Randomize question order for this test',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: shuffleQuestions,
+                          onChanged: (val) {
+                            setDialogState(() {
+                              shuffleQuestions = val;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ],
+              ),
             ),
             actions: [
               TextButton(
@@ -472,7 +532,7 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
               FilledButton.icon(
                 icon: const Icon(Icons.play_arrow_rounded, size: 18),
                 label: Text(isPractice ? 'Start Practice' : 'Start Test'),
-                onPressed: () => Navigator.pop(ctx, selectedLang),
+                onPressed: () => Navigator.pop(ctx, (language: selectedLang, shuffle: shuffleQuestions)),
               ),
             ],
           );
@@ -485,7 +545,18 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
     // Persist the language choice for next time (only for bilingual subjects)
     if (isBilingual) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('lastTestLanguage', result);
+      await prefs.setString('lastTestLanguage', result.language);
+    }
+
+    // Persist shuffle setting if changed from current global preference
+    if (result.shuffle != ref.read(settingsProvider).shuffleQuestions) {
+      ref.read(settingsProvider.notifier).setShuffleQuestions(result.shuffle);
+    }
+
+    // Non-destructively copy questions so the original chapter data remains intact
+    final testQuestions = List<Question>.from(data.questions);
+    if (result.shuffle) {
+      testQuestions.shuffle(Random());
     }
 
     final session = ExamSession(
@@ -493,16 +564,16 @@ class _ChaptersScreenState extends ConsumerState<ChaptersScreen> {
       chapterId: chapter.id,
       subjectName: subject.name,
       chapterTitle: chapter.title,
-      questions: data.questions,
+      questions: testQuestions,
       userAnswers: {},
       markedForReview: {},
       visitedQuestions: {},
-      timeRemaining: data.questions.length * data.timePerQuestion,
-      totalTime: data.questions.length * data.timePerQuestion,
+      timeRemaining: testQuestions.length * data.timePerQuestion,
+      totalTime: testQuestions.length * data.timePerQuestion,
       isPracticeMode: isPractice,
       positiveMarks: data.positiveMarks,
       negativeMarks: data.negativeMarks,
-      testLanguage: result,
+      testLanguage: result.language,
     );
     ref.read(sessionProvider.notifier).startSession(session);
     if (!mounted) return;

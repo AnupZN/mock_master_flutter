@@ -31,6 +31,16 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     await _service.saveSettings(state);
   }
 
+  Future<void> toggleShuffleQuestions() async {
+    state = state.copyWith(shuffleQuestions: !state.shuffleQuestions);
+    await _service.saveSettings(state);
+  }
+
+  Future<void> setShuffleQuestions(bool enabled) async {
+    state = state.copyWith(shuffleQuestions: enabled);
+    await _service.saveSettings(state);
+  }
+
   Future<void> syncFromSupabase(String userId) async {
     final user = _ref.read(currentUserProvider);
     final remoteSettings = await _service.fetchFromSupabase(userId, user: user);

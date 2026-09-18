@@ -9,6 +9,7 @@ class AppSettings {
   final String userName;
   final String userTitle;
   final bool isAdmin;
+  final bool shuffleQuestions;
 
   AppSettings({
     this.theme = DefaultSettings.theme,
@@ -18,6 +19,7 @@ class AppSettings {
     this.userName = DefaultSettings.userName,
     this.userTitle = DefaultSettings.userTitle,
     this.isAdmin = false,
+    this.shuffleQuestions = DefaultSettings.shuffleQuestions,
   });
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class AppSettings {
       userName: json['userName'] ?? DefaultSettings.userName,
       userTitle: json['userTitle'] ?? DefaultSettings.userTitle,
       isAdmin: json['isAdmin'] ?? false,
+      shuffleQuestions: json['shuffleQuestions'] ?? DefaultSettings.shuffleQuestions,
     );
   }
 
@@ -41,6 +44,7 @@ class AppSettings {
       'userName': userName,
       'userTitle': userTitle,
       'isAdmin': isAdmin,
+      'shuffleQuestions': shuffleQuestions,
     };
   }
 
@@ -52,6 +56,7 @@ class AppSettings {
     String? userName,
     String? userTitle,
     bool? isAdmin,
+    bool? shuffleQuestions,
   }) {
     return AppSettings(
       theme: theme ?? this.theme,
@@ -61,6 +66,7 @@ class AppSettings {
       userName: userName ?? this.userName,
       userTitle: userTitle ?? this.userTitle,
       isAdmin: isAdmin ?? this.isAdmin,
+      shuffleQuestions: shuffleQuestions ?? this.shuffleQuestions,
     );
   }
 

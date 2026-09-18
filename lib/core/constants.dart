@@ -16,4 +16,5 @@ class DefaultSettings {
   static const int dailyTarget = 15;
   static const String userName = 'Guest';
   static const String userTitle = 'Level 1 Aspirant';
+  static const bool shuffleQuestions = false;
 }

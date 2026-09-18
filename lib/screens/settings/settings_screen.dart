@@ -249,6 +249,15 @@ class SettingsScreen extends ConsumerWidget {
               ref.read(settingsProvider.notifier).toggleDarkMode();
             },
           ),
+          SwitchListTile(
+            title: const Text('Shuffle Questions'),
+            subtitle: const Text('Randomize question order in chapter tests'),
+            secondary: const Icon(Icons.shuffle_rounded),
+            value: settings.shuffleQuestions,
+            onChanged: (val) {
+              ref.read(settingsProvider.notifier).setShuffleQuestions(val);
+            },
+          ),
           const Divider(),
           const Padding(
             padding: EdgeInsets.fromLTRB(4, 12, 4, 4),
